@@ -44,30 +44,30 @@
   --sidebar-accent: #EEF2F9;
 }
 
-/* Dark Theme (Midnight Navy & Warm Caramel) */
+/* Dark Theme (Premium Midnight Slate & Refined Coffee Roastery Contrast) */
 .dark {
-  --background: #0B132B;
-  --foreground: #F8FAFC;
-  --card: #101B3B;
+  --background: #090D16;
+  --foreground: #F1F5F9;
+  --card: #0F172A;
   --card-foreground: #F8FAFC;
-  --popover: #101B3B;
+  --popover: #0F172A;
   --popover-foreground: #F8FAFC;
-  --primary: #3B82F6;
+  --primary: #1C2C60;
   --primary-foreground: #ffffff;
-  --primary-hover: #2563EB;
+  --primary-hover: #233777;
   --secondary: #C68A4C;
   --secondary-foreground: #ffffff;
   --tertiary: #1E293B;
   --tertiary-foreground: #F8FAFC;
   --neutral: #94A3B8;
-  --muted: #1E293B;
+  --muted: #131E35;
   --muted-foreground: #94A3B8;
   --border: #1E293B;
   --input: #1E293B;
-  --sidebar: #0E1630;
-  --sidebar-foreground: #F8FAFC;
+  --sidebar: #0B1120;
+  --sidebar-foreground: #F1F5F9;
   --sidebar-border: #1E293B;
-  --sidebar-accent: #1E293B;
+  --sidebar-accent: #131E35;
 }
 
 html, body, #root {
@@ -461,13 +461,14 @@ body {
 }
 
 .dark .rrm-nav-item.active {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  color: #60a5fa !important;
+  background-color: #1C2C60 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .dark .rrm-nav-item.active svg {
-  color: #60a5fa !important;
-  stroke: #60a5fa !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 .app-sidebar.collapsed .rrm-nav-item {

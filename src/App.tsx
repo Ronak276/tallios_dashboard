@@ -23,6 +23,7 @@ import { OverviewPage } from './pages/OverviewPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { LogOut } from './components/icons/Icons';
+import { supabase, SUPER_ADMIN_CREDENTIALS } from './lib/supabase';
 
 export function App() {
   const [darkMode, setDarkMode] = React.useState(false);
@@ -70,11 +71,49 @@ export function App() {
   const [showPOModal, setShowPOModal] = React.useState(false);
   const [showReceiptModal, setShowReceiptModal] = React.useState(false);
   const [showAuthModal, setShowAuthModal] = React.useState(false);
-  const [authMode, setAuthMode] = React.useState<'login' | 'signup'>('login');
+  const [authMode] = React.useState<'login' | 'signup'>('login');
   const [currentUser, setCurrentUser] = React.useState<{ name: string; email: string; role: string } | null>(() => {
     const saved = localStorage.getItem('tallios_user');
-    return saved ? JSON.parse(saved) : { name: "Tallio's Ops", email: "ops@tallioscoffee.com", role: "ROASTERY" };
+    return saved ? JSON.parse(saved) : null;
   });
+
+  // Supabase Auth listener to restore/sync sessions
+  React.useEffect(() => {
+    // Check initial Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const metadata = session.user.user_metadata || {};
+        const userObj = {
+          name: metadata.name || SUPER_ADMIN_CREDENTIALS.name,
+          email: session.user.email || SUPER_ADMIN_CREDENTIALS.email,
+          role: metadata.role || SUPER_ADMIN_CREDENTIALS.role,
+        };
+        setCurrentUser(userObj);
+        localStorage.setItem('tallios_user', JSON.stringify(userObj));
+      }
+    });
+
+    // Listen to Auth State changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const metadata = session.user.user_metadata || {};
+        const userObj = {
+          name: metadata.name || SUPER_ADMIN_CREDENTIALS.name,
+          email: session.user.email || SUPER_ADMIN_CREDENTIALS.email,
+          role: metadata.role || SUPER_ADMIN_CREDENTIALS.role,
+        };
+        setCurrentUser(userObj);
+        localStorage.setItem('tallios_user', JSON.stringify(userObj));
+      } else {
+        setCurrentUser(null);
+        localStorage.removeItem('tallios_user');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
   const [showEditItemModal, setShowEditItemModal] = React.useState(false);
   const [showViewItemModal, setShowViewItemModal] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
@@ -457,7 +496,7 @@ export function App() {
                   <span style={{
                     fontSize: '1.5rem',
                     fontWeight: 800,
-                    color: '#172B44',
+                    color: darkMode ? '#ffffff' : '#172B44',
                     lineHeight: 1.05,
                     letterSpacing: '-0.03em'
                   }}>
@@ -533,32 +572,32 @@ export function App() {
               width: '32px',
               height: '32px',
               borderRadius: '4px',
-              backgroundColor: '#fff0eb',
-              color: '#1C2C60',
+              backgroundColor: darkMode ? '#1E293B' : '#fff0eb',
+              color: darkMode ? '#60A5FA' : '#1C2C60',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 800,
               fontSize: '0.75rem',
-              border: '1px solid #ffd8cc'
+              border: darkMode ? '1px solid #334155' : '1px solid #ffd8cc'
             }}>
               {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : 'TO'}
             </div>
             {!sidebarCollapsed && (
               <div className="sidebar-user-details" style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{currentUser?.name || "Tallio's Ops"}</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)' }}>{currentUser?.name || "Tallio's Ops"}</span>
                   <span style={{
                     fontSize: '0.5625rem',
                     fontWeight: 700,
                     padding: '1px 4px',
-                    backgroundColor: '#fff0eb',
-                    color: '#1C2C60',
-                    border: '1px solid #ffd8cc',
+                    backgroundColor: darkMode ? 'rgba(59, 130, 246, 0.2)' : '#fff0eb',
+                    color: darkMode ? '#60A5FA' : '#1C2C60',
+                    border: darkMode ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #ffd8cc',
                     textTransform: 'uppercase'
-                  }}>{currentUser?.role || 'ROASTERY'}</span>
+                  }}>{currentUser?.role || 'SUPER ADMIN'}</span>
                 </div>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>{currentUser?.email || 'ops@tallioscoffee.com'}</span>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>{currentUser?.email || 'admin@tallioscoffee.com'}</span>
               </div>
             )}
           </div>
@@ -591,46 +630,9 @@ export function App() {
                   }}
                 >
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setShowUserMenu(false);
-                      setAuthMode('login');
-                      setShowAuthModal(true);
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      fontSize: '0.75rem',
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      borderBottom: '1px solid var(--border)',
-                      cursor: 'pointer',
-                      color: 'var(--foreground)'
-                    }}
-                  >
-                    Switch Account (Login)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      setAuthMode('signup');
-                      setShowAuthModal(true);
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      fontSize: '0.75rem',
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      borderBottom: '1px solid var(--border)',
-                      cursor: 'pointer',
-                      color: 'var(--foreground)'
-                    }}
-                  >
-                    Register New Staff (Signup)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
+                      await supabase.auth.signOut();
                       setCurrentUser(null);
                       localStorage.removeItem('tallios_user');
                       triggerToast('Logged out successfully');
@@ -643,13 +645,13 @@ export function App() {
                       border: 'none',
                       cursor: 'pointer',
                       color: '#ef4444',
-                      fontWeight: 600,
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px'
                     }}
                   >
-                    <LogOut size={13} /> Log Out
+                    <LogOut size={14} />
+                    Log Out
                   </button>
                 </div>
               )}

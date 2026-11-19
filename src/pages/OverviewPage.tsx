@@ -126,7 +126,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       {/* Top Header row (Operations overview + Location selector + New order button aligned in one single row) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginTop: '-0.25rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: '#1C2C60', letterSpacing: '-0.025em', margin: 0, lineHeight: 1.15 }}>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--foreground)', letterSpacing: '-0.025em', margin: 0, lineHeight: 1.15 }}>
             Operations overview
           </h1>
           <p style={{ margin: '3px 0 0', fontSize: '0.8125rem', color: 'var(--muted-foreground)', fontWeight: 500 }}>
@@ -148,7 +148,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             fontWeight: 600,
             color: 'var(--foreground)'
           }}>
-            <MapPin size={14} style={{ color: '#1C2C60' }} />
+            <MapPin size={14} style={{ color: '#2888E6' }} />
             <select
               value={selectedLocation === 'all' ? 'loc-main' : selectedLocation}
               onChange={(e) => onLocationChange(e.target.value as any)}
@@ -426,7 +426,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                     <tr key={order.id}>
                       {/* Order Column */}
                       <td>
-                        <div style={{ fontWeight: 700, color: '#1C2C60', fontSize: '0.8125rem' }}>{order.orderNumber}</div>
+                        <div style={{ fontWeight: 700, color: '#38bdf8', fontSize: '0.8125rem' }}>{order.orderNumber}</div>
                         <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>{order.time}</div>
                       </td>
 
