@@ -72,27 +72,30 @@ export function App() {
 
   // Supabase Database Real-time Sync for Customers
   React.useEffect(() => {
+    // Helper to map DB row to frontend CustomerUser model
+    const mapCustomer = (d: any): CustomerUser => ({
+      id: d.id,
+      name: d.name,
+      email: d.email,
+      phone: d.phone || '+1 (415) 555-0199',
+      avatar: d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1C2C60&color=fff`,
+      membership: d.membership || 'Regular',
+      status: d.status || 'Active',
+      totalOrders: d.total_orders || 0,
+      totalSpend: Number(d.total_spend || 0),
+      loyaltyPoints: d.loyalty_points || 0,
+      favoriteDrink: d.favorite_drink || 'Drip Coffee',
+      preferredLocation: d.preferred_location || 'Bayview Café',
+      lastOrderDate: d.last_order_at ? new Date(d.last_order_at).toLocaleDateString() : 'Just now',
+      joinedDate: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Today',
+    });
+
     // 1. Fetch initial customers from Supabase table
     const fetchCustomers = async () => {
       try {
         const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
-          const mapped: CustomerUser[] = data.map((d: any) => ({
-            id: d.id,
-            name: d.name,
-            email: d.email,
-            phone: d.phone || '+1 (415) 555-0199',
-            avatar: d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1C2C60&color=fff`,
-            membership: d.membership || 'Regular',
-            status: d.status || 'Active',
-            totalOrders: d.total_orders || 0,
-            totalSpend: Number(d.total_spend || 0),
-            loyaltyPoints: d.loyalty_points || 0,
-            favoriteDrink: d.favorite_drink || 'Drip Coffee',
-            preferredLocation: d.preferred_location || 'Bayview Café',
-            lastOrderDate: d.last_order_at ? new Date(d.last_order_at).toLocaleDateString() : 'Just now',
-            joinedDate: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Today',
-          }));
+          const mapped: CustomerUser[] = data.map(mapCustomer);
           setCustomers(mapped);
           localStorage.setItem('tallios_customers', JSON.stringify(mapped));
         }
@@ -102,6 +105,34 @@ export function App() {
     };
 
     fetchCustomers();
+
+    // 2. Real-time Subscription: Automatically listen for INSERT / UPDATE / DELETE
+    const channel = supabase
+      .channel('realtime_customers_sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'customers' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newCust = mapCustomer(payload.new);
+            setCustomers((prev) => {
+              if (prev.some(c => c.id === newCust.id || c.email === newCust.email)) return prev;
+              return [newCust, ...prev];
+            });
+            triggerToast(`New customer registered: ${payload.new.name || payload.new.email}`);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedCust = mapCustomer(payload.new);
+            setCustomers((prev) => prev.map(c => c.id === updatedCust.id ? updatedCust : c));
+          } else if (payload.eventType === 'DELETE') {
+            setCustomers((prev) => prev.filter(c => c.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   React.useEffect(() => {

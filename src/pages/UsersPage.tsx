@@ -177,7 +177,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       status: 'Active',
       totalOrders: 1,
       totalSpend: 15.00,
-      loyaltyPoints: 25,
+      loyaltyPoints: 0,
       favoriteDrink: newCust.favoriteDrink.trim() || 'Drip Coffee',
       preferredLocation: newCust.preferredLocation,
       lastOrderDate: 'Just now',

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from '../icons/Icons';
-import { supabase, SUPER_ADMIN_CREDENTIALS, STAFF_CREDENTIALS, ALL_STAFF_ACCOUNTS } from '../../lib/supabase';
+import { supabase, SUPER_ADMIN_CREDENTIALS } from '../../lib/supabase';
 
 interface AuthPageProps {
   onLoginSuccess: (user: { name: string; email: string; role: string; assignedLocation?: string }) => void;
@@ -8,24 +8,11 @@ interface AuthPageProps {
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = false }) => {
-  const [selectedRole, setSelectedRole] = useState<'Super Admin' | 'Staff'>('Super Admin');
-  const [email, setEmail] = useState(SUPER_ADMIN_CREDENTIALS.email);
-  const [password, setPassword] = useState(SUPER_ADMIN_CREDENTIALS.password);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleRoleSelect = (role: 'Super Admin' | 'Staff') => {
-    setSelectedRole(role);
-    setErrorMessage(null);
-    if (role === 'Super Admin') {
-      setEmail(SUPER_ADMIN_CREDENTIALS.email);
-      setPassword(SUPER_ADMIN_CREDENTIALS.password);
-    } else {
-      setEmail(STAFF_CREDENTIALS.email);
-      setPassword(STAFF_CREDENTIALS.password);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,93 +101,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
             }}>
               Login to your account
             </h1>
-
-            {/* Quick Role Switcher */}
-            <div style={{
-              display: 'flex',
-              padding: '4px',
-              backgroundColor: '#f1f5f9',
-              borderRadius: '10px',
-              marginTop: '1.25rem',
-              width: '100%',
-              border: '1px solid #e2e8f0'
-            }}>
-              <button
-                type="button"
-                onClick={() => handleRoleSelect('Super Admin')}
-                style={{
-                  flex: 1,
-                  padding: '7px 12px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  backgroundColor: selectedRole === 'Super Admin' ? '#1C2C60' : 'transparent',
-                  color: selectedRole === 'Super Admin' ? '#ffffff' : '#64748b',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Super Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleSelect('Staff')}
-                style={{
-                  flex: 1,
-                  padding: '7px 12px',
-                  borderRadius: '7px',
-                  border: 'none',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  backgroundColor: selectedRole === 'Staff' ? '#1C2C60' : 'transparent',
-                  color: selectedRole === 'Staff' ? '#ffffff' : '#64748b',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Café Staff
-              </button>
-            </div>
-
-            {/* Quick Location Pills when Staff is selected */}
-            {selectedRole === 'Staff' && (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '6px',
-                width: '100%',
-                marginTop: '10px'
-              }}>
-                {ALL_STAFF_ACCOUNTS.map((acc) => (
-                  <button
-                    key={acc.email}
-                    type="button"
-                    onClick={() => {
-                      setEmail(acc.email);
-                      setPassword(acc.password);
-                    }}
-                    style={{
-                      padding: '6px 8px',
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      borderRadius: '6px',
-                      border: email === acc.email ? '1px solid #1C2C60' : '1px solid #cbd5e1',
-                      backgroundColor: email === acc.email ? 'rgba(28, 44, 96, 0.08)' : '#ffffff',
-                      color: email === acc.email ? '#1C2C60' : '#475569',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}
-                    title={acc.location}
-                  >
-                    📍 {acc.location.split('(')[0].trim()}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {errorMessage && (
@@ -335,18 +235,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
               }}
             >
               <span>
-                {isLoading
-                  ? 'Authenticating with Supabase...'
-                  : selectedRole === 'Super Admin'
-                  ? 'Login as Super Admin →'
-                  : 'Login as Café Staff →'}
+                {isLoading ? 'Authenticating with Supabase...' : 'Sign In →'}
               </span>
             </button>
           </form>
 
           {/* Help Note */}
           <div style={{ marginTop: '1.75rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-            Tallio's Café Operations Platform • {selectedRole === 'Super Admin' ? 'Authorized Super Admin Access' : 'Café Shift Staff Access'}
+            Tallio's Café Operations Platform • Secure Authorized Access
           </div>
         </div>
 
