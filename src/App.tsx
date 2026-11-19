@@ -20,7 +20,7 @@ import { AuthModal } from './components/auth/AuthModal';
 import { AuthPage } from './components/auth/AuthPage';
 import { EditItemModal, ViewItemModal } from './components/inventory/ItemActionModals';
 import { PaymentsModule } from './components/payments/PaymentsModule';
-import { DashboardOverview } from './components/DashboardOverview';
+import { OverviewPage } from './pages/OverviewPage';
 import { LogOut } from './components/icons/Icons';
 
 export function App() {
@@ -741,7 +741,7 @@ export function App() {
           
           {/* TAB 0: DASHBOARD OVERVIEW (PICTURE-PERFECT TO THE DESIGN) */}
           {activeTab === 'dashboard' && (
-            <DashboardOverview
+            <OverviewPage
               selectedLocation={selectedLocation}
               onLocationChange={(loc) => setSelectedLocation(loc)}
               onNavigateToOrders={() => setActiveTab('orders')}

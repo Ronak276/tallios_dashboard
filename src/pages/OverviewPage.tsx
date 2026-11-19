@@ -2,10 +2,10 @@ import React from 'react';
 import { 
   ClipboardList, CheckCircle, AlertTriangle, Wallet, 
   ArrowRight, ArrowDownLeft, Coffee, Plus, MapPin
-} from './icons/Icons';
+} from '../components/icons/Icons';
 import type { LocationId } from '../types';
 
-interface DashboardOverviewProps {
+interface OverviewPageProps {
   onNavigateToOrders?: () => void;
   onNavigateToInventory?: () => void;
   onNewOrder?: () => void;
@@ -32,7 +32,7 @@ interface StockAlert {
   quantity: string;
 }
 
-export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
+export const OverviewPage: React.FC<OverviewPageProps> = ({
   onNavigateToOrders,
   onNavigateToInventory,
   onNewOrder,
