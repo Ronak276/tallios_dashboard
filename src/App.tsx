@@ -10,7 +10,7 @@ import {
 import { 
   LayoutGrid, Package, 
   Users, SidebarToggle, 
-  Sun, Moon, MoreVertical, Search, Plus, RefreshCw, 
+  Sun, Moon, MoreVertical, Plus, 
   CheckCircle, DollarSign, AlertTriangle, X, List, Grid,
   ClipboardList, Cubes, MapPin
 } from './components/icons/Icons';
@@ -18,9 +18,10 @@ import { GradientAreaChart } from './components/charts/GradientAreaChart';
 import { DashboardAnalytics } from './components/analytics/DashboardAnalytics';
 import { AuthModal } from './components/auth/AuthModal';
 import { AuthPage } from './components/auth/AuthPage';
-import { EditItemModal, ViewItemModal } from './components/inventory/ItemActionModals';
-import { PaymentsModule } from './components/payments/PaymentsModule';
+import { EditItemModal, ViewItemModal } from './components/modals/ItemActionModals';
 import { OverviewPage } from './pages/OverviewPage';
+import { InventoryPage } from './pages/InventoryPage';
+import { PaymentsPage } from './pages/PaymentsPage';
 import { LogOut } from './components/icons/Icons';
 
 export function App() {
@@ -76,11 +77,9 @@ export function App() {
   });
   const [showEditItemModal, setShowEditItemModal] = React.useState(false);
   const [showViewItemModal, setShowViewItemModal] = React.useState(false);
-  const [openDropdownItemId, setOpenDropdownItemId] = React.useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
 
   // Per-module View Mode States (Default: 'table')
-  const [inventoryViewMode, setInventoryViewMode] = React.useState<'table' | 'card'>('table');
   const [ordersViewMode, setOrdersViewMode] = React.useState<'table' | 'card'>('table');
 
   const [selectedOrderForReceipt, setSelectedOrderForReceipt] = React.useState<KioskOrder | null>(null);
@@ -173,7 +172,7 @@ export function App() {
   };
 
   // Filtered inventory
-  const filteredInventory = inventory.filter((item) => {
+  const filteredInventoryCount = inventory.filter((item) => {
     const matchesLocation = selectedLocation === 'all' || item.locationId === selectedLocation;
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
     const matchesSearch = 
@@ -181,7 +180,8 @@ export function App() {
       item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.batchNumber.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesLocation && matchesCategory && matchesSearch;
-  });
+  }).length;
+  void filteredInventoryCount;
 
   // KPI Calculations
   const totalSKUs = inventory.length;
@@ -353,31 +353,6 @@ export function App() {
       return m;
     }));
     triggerToast(`10-Cup punch card stamp recorded (+25 points)!`);
-  };
-
-  const exportInventoryCSV = () => {
-    const headers = ['SKU', 'Name', 'Category', 'Stock', 'Unit', 'MinThreshold', 'UnitCost', 'Status', 'Location'];
-    const rows = inventory.map(i => [
-      i.sku,
-      `"${i.name}"`,
-      `"${i.category}"`,
-      i.stock,
-      i.unit,
-      i.minThreshold,
-      i.costPerUnit,
-      i.status,
-      LOCATIONS.find(l => l.id === i.locationId)?.name || i.locationId
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Tallios_Coffee_Inventory_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    triggerToast('Coffee inventory CSV downloaded!');
   };
 
   // If user is logged out, render the Full-Screen Login / Signup Page
@@ -809,410 +784,32 @@ export function App() {
 
           {/* TAB 1: RAW INGREDIENTS & COFFEE STOCK */}
           {activeTab === 'inventory' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              
-              {/* Category Dropdown & Filters */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)' }}>
-                    Category Filter:
-                  </label>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="rrm-input"
-                    style={{
-                      padding: '5px 12px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      backgroundColor: 'var(--card)',
-                      color: selectedCategory === 'all' ? 'var(--foreground)' : '#1C2C60',
-                      borderColor: selectedCategory === 'all' ? 'var(--border)' : '#1C2C60',
-                      cursor: 'pointer',
-                      minWidth: '180px'
-                    }}
-                  >
-                    <option value="all">☕ All Ingredients (Consolidated)</option>
-                    <option value="Beans & Roasts">Beans & Roasts</option>
-                    <option value="Dairy & Alternative Milk">Dairy & Alternative Milk</option>
-                    <option value="Syrups & Flavors">Syrups & Flavors</option>
-                    <option value="Bakery & Snacks">Bakery & Snacks</option>
-                    <option value="Packaging & Cups">Packaging & Cups</option>
-                    <option value="Tea & Matcha">Tea & Matcha</option>
-                  </select>
-                </div>
-
-                {/* Search Bar & Export & Add SKU Button */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ position: 'relative', minWidth: '240px' }}>
-                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
-                    <input
-                      type="text"
-                      placeholder="Search Bean, Milk, Syrup, Batch..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="rrm-input"
-                      style={{ width: '100%', paddingLeft: '32px' }}
-                    />
-                  </div>
-                  <button
-                    onClick={exportInventoryCSV}
-                    className="rrm-btn-outline"
-                    title="Export as CSV spreadsheet"
-                  >
-                    Export CSV
-                  </button>
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="rrm-btn-primary"
-                    style={{ padding: '6px 12px', fontSize: '0.78rem' }}
-                  >
-                    <Plus size={14} /> + Add Ingredient
-                  </button>
-                </div>
-              </div>
-
-              {/* Data Table */}
-              <div className="rrm-card">
-                <div className="rrm-card-header">
-                  <div>
-                    <h3 className="rrm-card-title uppercase tracking-wide">Live Cafe Ingredients & Stock Catalog</h3>
-                    <p className="rrm-card-description">Real-time inventory levels across roastery and food trucks</p>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>Showing {filteredInventory.length} items</span>
-
-                    {/* Table vs Card Icon-only Toggle */}
-                    <div style={{ display: 'inline-flex', border: '1px solid var(--border)', backgroundColor: 'var(--card)' }}>
-                      <button
-                        onClick={() => setInventoryViewMode('table')}
-                        style={{
-                          padding: '4px 8px',
-                          border: 'none',
-                          background: inventoryViewMode === 'table' ? 'var(--primary)' : 'transparent',
-                          color: inventoryViewMode === 'table' ? '#ffffff' : 'var(--muted-foreground)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                        title="Table View (Default)"
-                      >
-                        <List size={14} />
-                      </button>
-                      <button
-                        onClick={() => setInventoryViewMode('card')}
-                        style={{
-                          padding: '4px 8px',
-                          border: 'none',
-                          borderLeft: '1px solid var(--border)',
-                          background: inventoryViewMode === 'card' ? 'var(--primary)' : 'transparent',
-                          color: inventoryViewMode === 'card' ? '#ffffff' : 'var(--muted-foreground)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                        title="Card View"
-                      >
-                        <Grid size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {inventoryViewMode === 'table' ? (
-                  <div className="rrm-table-wrapper" style={{ border: 'none' }}>
-                    <table className="rrm-table">
-                      <thead>
-                        <tr>
-                          <th>Item & SKU</th>
-                          <th>Category</th>
-                          <th>Location</th>
-                          <th>Current On-Hand</th>
-                          <th>Batch / Lot</th>
-                          <th>Unit Cost</th>
-                          <th>Status</th>
-                          <th style={{ textAlign: 'right' }}>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredInventory.map(item => {
-                          const locName = LOCATIONS.find(l => l.id === item.locationId)?.name;
-                          return (
-                            <tr key={item.id}>
-                              <td>
-                                <div style={{ fontWeight: 600 }}>{item.name}</div>
-                                <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)', fontFamily: 'monospace' }}>{item.sku}</div>
-                              </td>
-                              <td>
-                                <span style={{ fontSize: '0.6875rem', padding: '2px 8px', backgroundColor: 'var(--muted)', border: '1px solid var(--border)' }}>
-                                  {item.category}
-                                </span>
-                              </td>
-                              <td style={{ fontSize: '0.75rem' }}>
-                                <div style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={locName}>
-                                  {locName?.replace("Tallio's ", "")}
-                                </div>
-                              </td>
-                              <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>
-                                    {item.stock} <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--muted-foreground)' }}>{item.unit}</span>
-                                  </span>
-                                </div>
-                                <div style={{ fontSize: '0.625rem', color: 'var(--muted-foreground)' }}>Min: {item.minThreshold} {item.unit}</div>
-                              </td>
-                              <td style={{ fontFamily: 'monospace', fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>
-                                {item.batchNumber}
-                              </td>
-                              <td style={{ fontWeight: 600 }}>
-                                ${item.costPerUnit.toFixed(2)}
-                              </td>
-                              <td>
-                                {item.status === 'In Stock' && (
-                                  <span className="rrm-badge rrm-badge-valid">● In Stock</span>
-                                )}
-                                {item.status === 'Low Stock' && (
-                                  <span className="rrm-badge rrm-badge-warning">▲ Low Stock</span>
-                                )}
-                                {(item.status === 'Critical' || item.status === 'Out of Stock') && (
-                                  <span className="rrm-badge rrm-badge-expired">✕ {item.status}</span>
-                                )}
-                              </td>
-                              <td style={{ textAlign: 'right', position: 'relative' }}>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', position: 'relative' }}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenDropdownItemId(openDropdownItemId === item.id ? null : item.id);
-                                    }}
-                                    className="rrm-btn-outline"
-                                    style={{ padding: '4px 6px', color: 'var(--muted-foreground)' }}
-                                    title="Actions Menu"
-                                  >
-                                    <MoreVertical size={16} />
-                                  </button>
-
-                                  {/* 3-Dot Action Dropdown Menu */}
-                                  {openDropdownItemId === item.id && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        right: 0,
-                                        top: '100%',
-                                        marginTop: '4px',
-                                        width: '160px',
-                                        backgroundColor: 'var(--card)',
-                                        border: '1px solid var(--border)',
-                                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.15)',
-                                        zIndex: 100,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        textAlign: 'left'
-                                      }}
-                                    >
-                                      <button
-                                        onClick={() => {
-                                          setOpenDropdownItemId(null);
-                                          setSelectedItemForAction(item);
-                                          setShowViewItemModal(true);
-                                        }}
-                                        style={{
-                                          padding: '7px 12px',
-                                          fontSize: '0.75rem',
-                                          background: 'none',
-                                          border: 'none',
-                                          borderBottom: '1px solid var(--border)',
-                                          textAlign: 'left',
-                                          cursor: 'pointer',
-                                          color: 'var(--foreground)'
-                                        }}
-                                      >
-                                        👁 View Details
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setOpenDropdownItemId(null);
-                                          setSelectedItemForAction(item);
-                                          setShowEditItemModal(true);
-                                        }}
-                                        style={{
-                                          padding: '7px 12px',
-                                          fontSize: '0.75rem',
-                                          background: 'none',
-                                          border: 'none',
-                                          borderBottom: '1px solid var(--border)',
-                                          textAlign: 'left',
-                                          cursor: 'pointer',
-                                          color: 'var(--foreground)'
-                                        }}
-                                      >
-                                        ✏️ Edit Item
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setOpenDropdownItemId(null);
-                                          setSelectedItemForAction(item);
-                                          setShowAdjustModal(true);
-                                        }}
-                                        style={{
-                                          padding: '7px 12px',
-                                          fontSize: '0.75rem',
-                                          background: 'none',
-                                          border: 'none',
-                                          borderBottom: '1px solid var(--border)',
-                                          textAlign: 'left',
-                                          cursor: 'pointer',
-                                          color: 'var(--foreground)'
-                                        }}
-                                      >
-                                        ⚖️ Adjust / Waste
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setOpenDropdownItemId(null);
-                                          setSelectedItemForAction(item);
-                                          setShowTransferModal(true);
-                                        }}
-                                        style={{
-                                          padding: '7px 12px',
-                                          fontSize: '0.75rem',
-                                          background: 'none',
-                                          border: 'none',
-                                          borderBottom: '1px solid var(--border)',
-                                          textAlign: 'left',
-                                          cursor: 'pointer',
-                                          color: '#1C2C60',
-                                          fontWeight: 600
-                                        }}
-                                      >
-                                        🚚 Transfer Unit
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setOpenDropdownItemId(null);
-                                          if (confirm(`Are you sure you want to delete ${item.name}?`)) {
-                                            setInventory(prev => prev.filter(i => i.id !== item.id));
-                                            triggerToast(`Deleted ${item.name} from catalog`);
-                                          }
-                                        }}
-                                        style={{
-                                          padding: '7px 12px',
-                                          fontSize: '0.75rem',
-                                          background: 'none',
-                                          border: 'none',
-                                          textAlign: 'left',
-                                          cursor: 'pointer',
-                                          color: '#ef4444',
-                                          fontWeight: 600
-                                        }}
-                                      >
-                                        🗑 Delete Item
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  /* CARD VIEW FOR INVENTORY */
-                  <div style={{ padding: '1rem' }} className="cards-three-grid">
-                    {filteredInventory.map(item => {
-                      const locName = LOCATIONS.find(l => l.id === item.locationId)?.name;
-                      return (
-                        <div key={item.id} className="rrm-card" style={{ border: '1px solid var(--border)' }}>
-                          <div className="rrm-card-header" style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--muted)' }}>
-                            <div>
-                              <span style={{ fontSize: '0.625rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase' }}>
-                                {item.category}
-                              </span>
-                              <h4 style={{ fontSize: '0.875rem', fontWeight: 700, margin: '2px 0 0 0' }}>{item.name}</h4>
-                              <span style={{ fontSize: '0.6875rem', fontFamily: 'monospace', color: 'var(--muted-foreground)' }}>{item.sku}</span>
-                            </div>
-                            <span className={`rrm-badge ${item.status === 'In Stock' ? 'rrm-badge-valid' : item.status === 'Low Stock' ? 'rrm-badge-warning' : 'rrm-badge-expired'}`}>
-                              {item.status}
-                            </span>
-                          </div>
-
-                          <div className="rrm-card-body" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.75rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ color: 'var(--muted-foreground)' }}>On Hand:</span>
-                              <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--primary)' }}>
-                                {item.stock} {item.unit}
-                              </span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--muted-foreground)' }}>Unit Cost:</span>
-                              <span style={{ fontWeight: 600 }}>${item.costPerUnit.toFixed(2)}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--muted-foreground)' }}>Assigned Unit:</span>
-                              <span>{locName?.replace("Tallio's ", "")}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--muted-foreground)' }}>Lot:</span>
-                              <span style={{ fontFamily: 'monospace' }}>{item.batchNumber}</span>
-                            </div>
-                          </div>
-
-                          <div className="rrm-card-footer" style={{ padding: '0.5rem 1rem', display: 'flex', justifyContent: 'space-between', gap: '6px' }}>
-                            <button
-                              onClick={() => {
-                                setSelectedItemForAction(item);
-                                setShowViewItemModal(true);
-                              }}
-                              className="rrm-btn-outline"
-                              style={{ padding: '3px 8px', fontSize: '0.6875rem', flex: 1 }}
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedItemForAction(item);
-                                setShowEditItemModal(true);
-                              }}
-                              className="rrm-btn-outline"
-                              style={{ padding: '3px 8px', fontSize: '0.6875rem', flex: 1 }}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (confirm(`Delete ${item.name}?`)) {
-                                  setInventory(prev => prev.filter(i => i.id !== item.id));
-                                  triggerToast(`Deleted ${item.name}`);
-                                }
-                              }}
-                              className="rrm-btn-outline"
-                              style={{ padding: '3px 8px', fontSize: '0.6875rem', color: '#ef4444', borderColor: '#ef4444' }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="rrm-card-footer" style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                  <span>Audit log synced: Recipe deduction automatic</span>
-                  <button 
-                    onClick={() => triggerToast("Refreshed all stock sensors")}
-                    className="rrm-btn-outline"
-                    style={{ padding: '2px 8px', fontSize: '0.6875rem' }}
-                  >
-                    <RefreshCw size={11} /> Sync Stock
-                  </button>
-                </div>
-              </div>
-            </div>
+            <InventoryPage
+              inventory={inventory}
+              setInventory={setInventory}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onOpenAddModal={() => setShowAddModal(true)}
+              onViewItem={(item) => {
+                setSelectedItemForAction(item);
+                setShowViewItemModal(true);
+              }}
+              onEditItem={(item) => {
+                setSelectedItemForAction(item);
+                setShowEditItemModal(true);
+              }}
+              onAdjustStock={(item) => {
+                setSelectedItemForAction(item);
+                setShowAdjustModal(true);
+              }}
+              onTransferStock={(item) => {
+                setSelectedItemForAction(item);
+                setShowTransferModal(true);
+              }}
+              triggerToast={triggerToast}
+            />
           )}
 
           {/* TAB 2: LIVE KIOSK & QR ORDERS */}
@@ -1798,11 +1395,13 @@ export function App() {
 
           {/* TAB 7: PAYMENTS & REVENUE SETTLEMENT */}
           {activeTab === 'payments' && (
-            <PaymentsModule
+            <PaymentsPage
               payments={payments}
-              onAddPayment={(newP) => setPayments(prev => [newP, ...prev])}
+              onAddPayment={(newTx) => {
+                setPayments(prev => [newTx, ...prev]);
+              }}
               onRefundPayment={(id) => {
-                setPayments(prev => prev.map(p => p.id === id ? { ...p, status: 'Refunded', payoutStatus: 'Paid Out' } : p));
+                setPayments(prev => prev.map(p => p.id === id ? { ...p, status: 'Refunded', netRevenue: 0 } : p));
               }}
               onDeletePayment={(id) => {
                 setPayments(prev => prev.filter(p => p.id !== id));

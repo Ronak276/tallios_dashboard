@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import type { PaymentTransaction } from '../../types';
+import type { PaymentTransaction } from '../types';
 import { 
   CreditCard, DollarSign, TrendingUp, Search, Plus, 
   MoreVertical, CheckCircle, X, List, Grid 
-} from '../icons/Icons';
+} from '../components/icons/Icons';
 
-interface PaymentsModuleProps {
+interface PaymentsPageProps {
   payments: PaymentTransaction[];
   onAddPayment: (payment: PaymentTransaction) => void;
   onRefundPayment: (id: string) => void;
@@ -13,7 +13,7 @@ interface PaymentsModuleProps {
   triggerToast: (msg: string) => void;
 }
 
-export const PaymentsModule: React.FC<PaymentsModuleProps> = ({
+export const PaymentsPage: React.FC<PaymentsPageProps> = ({
   payments,
   onAddPayment,
   onRefundPayment,
