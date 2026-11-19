@@ -18,6 +18,13 @@ export const SUPER_ADMIN_CREDENTIALS = {
   role: 'Super Admin',
 };
 
+export const STAFF_CREDENTIALS = {
+  email: 'staff@tallioscoffee.com',
+  password: 'password123',
+  name: "Tallio's Café Staff",
+  role: 'Staff',
+};
+
 /**
  * Ensures the super admin user exists in Supabase.
  * If user does not exist, attempts to create it via signUp.

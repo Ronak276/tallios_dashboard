@@ -1,11 +1,11 @@
 import React from 'react';
 import type { 
   InventoryItem, KioskOrder, StockAdjustmentLog, 
-  LocationId, ItemCategory, LoyaltyMember, PurchaseOrder, PaymentTransaction 
+  LocationId, ItemCategory, LoyaltyMember, PurchaseOrder, PaymentTransaction, CustomerUser 
 } from './types';
 import { 
   INITIAL_INVENTORY, LOCATIONS, INITIAL_ORDERS, 
-  RECENT_LOGS, LOYALTY_MEMBERS, INITIAL_PURCHASE_ORDERS, INITIAL_PAYMENTS 
+  RECENT_LOGS, LOYALTY_MEMBERS, INITIAL_PURCHASE_ORDERS, INITIAL_PAYMENTS, INITIAL_CUSTOMERS 
 } from './data/mockData';
 import { 
   LayoutGrid, Package, 
@@ -22,18 +22,19 @@ import { EditItemModal, ViewItemModal } from './components/modals/ItemActionModa
 import { OverviewPage } from './pages/OverviewPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PaymentsPage } from './pages/PaymentsPage';
+import { UsersPage } from './pages/UsersPage';
 import { LogOut } from './components/icons/Icons';
 import { supabase, SUPER_ADMIN_CREDENTIALS } from './lib/supabase';
 
 export function App() {
   const [darkMode, setDarkMode] = React.useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<'dashboard' | 'inventory' | 'orders' | 'trucks' | 'roasting' | 'loyalty' | 'procurement' | 'payments' | 'analytics' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = React.useState<'dashboard' | 'inventory' | 'orders' | 'trucks' | 'users' | 'roasting' | 'loyalty' | 'procurement' | 'payments' | 'analytics' | 'settings'>('dashboard');
   const [selectedLocation, setSelectedLocation] = React.useState<LocationId | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all');
   const [searchQuery, setSearchQuery] = React.useState('');
   
-  // State for inventory, orders, members, purchase orders, and payments
+  // State for inventory, orders, members, purchase orders, payments, and customers
   const [inventory, setInventory] = React.useState<InventoryItem[]>(() => {
     const saved = localStorage.getItem('tallios_inventory');
     return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
@@ -63,6 +64,15 @@ export function App() {
     const saved = localStorage.getItem('tallios_payments');
     return saved ? JSON.parse(saved) : INITIAL_PAYMENTS;
   });
+
+  const [customers, setCustomers] = React.useState<CustomerUser[]>(() => {
+    const saved = localStorage.getItem('tallios_customers');
+    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('tallios_customers', JSON.stringify(customers));
+  }, [customers]);
   
   // Modals & Action States
   const [showAddModal, setShowAddModal] = React.useState(false);
@@ -529,7 +539,16 @@ export function App() {
               <span>Overview</span>
             </button>
 
-            {/* 2. Orders */}
+            {/* 2. Users (App Customers) - Placed directly after Overview */}
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`rrm-nav-item ${activeTab === 'users' ? 'active' : ''}`}
+            >
+              <Users size={18} />
+              <span>Users</span>
+            </button>
+
+            {/* 3. Orders */}
             <button
               onClick={() => setActiveTab('orders')}
               className={`rrm-nav-item ${activeTab === 'orders' ? 'active' : ''}`}
@@ -538,7 +557,7 @@ export function App() {
               <span>Orders</span>
             </button>
 
-            {/* 3. Inventory */}
+            {/* 4. Inventory */}
             <button
               onClick={() => setActiveTab('inventory')}
               className={`rrm-nav-item ${activeTab === 'inventory' ? 'active' : ''}`}
@@ -547,7 +566,7 @@ export function App() {
               <span>Inventory</span>
             </button>
 
-            {/* 4. Locations */}
+            {/* 5. Locations */}
             <button
               onClick={() => setActiveTab('trucks')}
               className={`rrm-nav-item ${activeTab === 'trucks' ? 'active' : ''}`}
@@ -572,14 +591,20 @@ export function App() {
               width: '32px',
               height: '32px',
               borderRadius: '4px',
-              backgroundColor: darkMode ? '#1E293B' : '#fff0eb',
-              color: darkMode ? '#60A5FA' : '#1C2C60',
+              backgroundColor: darkMode 
+                ? (currentUser?.role === 'Staff' ? 'rgba(2, 132, 199, 0.2)' : '#1E293B')
+                : (currentUser?.role === 'Staff' ? '#e0f2fe' : '#fff0eb'),
+              color: darkMode 
+                ? (currentUser?.role === 'Staff' ? '#38bdf8' : '#60A5FA')
+                : (currentUser?.role === 'Staff' ? '#0284c7' : '#1C2C60'),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 800,
               fontSize: '0.75rem',
-              border: darkMode ? '1px solid #334155' : '1px solid #ffd8cc'
+              border: darkMode 
+                ? (currentUser?.role === 'Staff' ? '1px solid #0369a1' : '1px solid #334155')
+                : (currentUser?.role === 'Staff' ? '1px solid #bae6fd' : '1px solid #ffd8cc')
             }}>
               {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : 'TO'}
             </div>
@@ -591,9 +616,15 @@ export function App() {
                     fontSize: '0.5625rem',
                     fontWeight: 700,
                     padding: '1px 4px',
-                    backgroundColor: darkMode ? 'rgba(59, 130, 246, 0.2)' : '#fff0eb',
-                    color: darkMode ? '#60A5FA' : '#1C2C60',
-                    border: darkMode ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #ffd8cc',
+                    backgroundColor: currentUser?.role === 'Staff' 
+                      ? (darkMode ? 'rgba(2, 132, 199, 0.2)' : '#e0f2fe')
+                      : (darkMode ? 'rgba(59, 130, 246, 0.2)' : '#fff0eb'),
+                    color: currentUser?.role === 'Staff' 
+                      ? (darkMode ? '#38bdf8' : '#0284c7')
+                      : (darkMode ? '#60A5FA' : '#1C2C60'),
+                    border: currentUser?.role === 'Staff' 
+                      ? (darkMode ? '1px solid #0369a1' : '1px solid #bae6fd')
+                      : (darkMode ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #ffd8cc'),
                     textTransform: 'uppercase'
                   }}>{currentUser?.role || 'SUPER ADMIN'}</span>
                 </div>
@@ -692,6 +723,7 @@ export function App() {
                  activeTab === 'inventory' ? 'Raw Ingredients & Stock' : 
                  activeTab === 'orders' ? 'Live Kiosk & QR Orders' : 
                  activeTab === 'trucks' ? 'Mobile Food Trucks & Units' : 
+                 activeTab === 'users' ? 'Users & Customers' :
                  activeTab === 'roasting' ? 'Roasting & Batch Logs' : 
                  activeTab === 'loyalty' ? 'Mug Club & Subscriptions' : 
                  activeTab === 'procurement' ? 'Purchase Orders & Suppliers' : 
@@ -728,7 +760,7 @@ export function App() {
           )}
 
           {/* STATS OVERVIEW CARDS (FOR OTHER TABS) */}
-          {activeTab !== 'dashboard' && (
+          {activeTab !== 'dashboard' && activeTab !== 'users' && (
             <div className="stats-grid">
               <div className="rrm-card">
                 <div className="rrm-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1407,6 +1439,27 @@ export function App() {
               }}
               onDeletePayment={(id) => {
                 setPayments(prev => prev.filter(p => p.id !== id));
+              }}
+              triggerToast={triggerToast}
+            />
+          )}
+
+          {/* TAB 8: USERS (APP CUSTOMERS MANAGEMENT) */}
+          {activeTab === 'users' && (
+            <UsersPage
+              customers={customers}
+              userRole={currentUser?.role}
+              onAddCustomer={(newCust) => {
+                setCustomers(prev => [newCust, ...prev]);
+              }}
+              onUpdateCustomer={(updatedCust) => {
+                setCustomers(prev => prev.map(c => c.id === updatedCust.id ? updatedCust : c));
+              }}
+              onDeleteCustomer={(id) => {
+                setCustomers(prev => prev.filter(c => c.id !== id));
+              }}
+              onDeleteMultipleCustomers={(ids) => {
+                setCustomers(prev => prev.filter(c => !ids.includes(c.id)));
               }}
               triggerToast={triggerToast}
             />

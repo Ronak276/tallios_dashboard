@@ -102,3 +102,24 @@ export interface PaymentTransaction {
   timestamp: string;
   receiptUrl?: string;
 }
+
+export type CustomerTier = 'Regular' | 'Mug Club Member' | 'VIP Gold';
+export type CustomerStatus = 'Active' | 'Inactive';
+
+export interface CustomerUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  membership: CustomerTier;
+  status: CustomerStatus;
+  totalOrders: number;
+  totalSpend: number;
+  loyaltyPoints: number;
+  favoriteDrink: string;
+  preferredLocation: string;
+  lastOrderDate: string;
+  joinedDate: string;
+}
+

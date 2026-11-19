@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from '../icons/Icons';
-import { supabase, SUPER_ADMIN_CREDENTIALS } from '../../lib/supabase';
+import { supabase, SUPER_ADMIN_CREDENTIALS, STAFF_CREDENTIALS } from '../../lib/supabase';
 
 interface AuthPageProps {
   onLoginSuccess: (user: { name: string; email: string; role: string }) => void;
@@ -8,16 +8,32 @@ interface AuthPageProps {
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = false }) => {
+  const [selectedRole, setSelectedRole] = useState<'Super Admin' | 'Staff'>('Super Admin');
   const [email, setEmail] = useState(SUPER_ADMIN_CREDENTIALS.email);
   const [password, setPassword] = useState(SUPER_ADMIN_CREDENTIALS.password);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const handleRoleSelect = (role: 'Super Admin' | 'Staff') => {
+    setSelectedRole(role);
+    setErrorMessage(null);
+    if (role === 'Super Admin') {
+      setEmail(SUPER_ADMIN_CREDENTIALS.email);
+      setPassword(SUPER_ADMIN_CREDENTIALS.password);
+    } else {
+      setEmail(STAFF_CREDENTIALS.email);
+      setPassword(STAFF_CREDENTIALS.password);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
+
+    const isStaff = email.trim().toLowerCase() === STAFF_CREDENTIALS.email.toLowerCase();
+    const fallbackCreds = isStaff ? STAFF_CREDENTIALS : SUPER_ADMIN_CREDENTIALS;
 
     try {
       // 1. Authenticate with Supabase
@@ -27,27 +43,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
       });
 
       if (error) {
-        // If account doesn't exist yet in Supabase auth, provision super admin automatically
-        if (
-          email.trim().toLowerCase() === SUPER_ADMIN_CREDENTIALS.email.toLowerCase() &&
-          (error.message.includes('Invalid login') || error.message.includes('User not found'))
-        ) {
+        // If account doesn't exist yet in Supabase auth, provision automatically
+        if (error.message.includes('Invalid login') || error.message.includes('User not found')) {
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: SUPER_ADMIN_CREDENTIALS.email,
-            password: SUPER_ADMIN_CREDENTIALS.password,
+            email: fallbackCreds.email,
+            password: fallbackCreds.password,
             options: {
               data: {
-                name: SUPER_ADMIN_CREDENTIALS.name,
-                role: SUPER_ADMIN_CREDENTIALS.role,
+                name: fallbackCreds.name,
+                role: fallbackCreds.role,
               },
             },
           });
 
           if (!signUpError && signUpData.user) {
             onLoginSuccess({
-              name: SUPER_ADMIN_CREDENTIALS.name,
-              email: signUpData.user.email || SUPER_ADMIN_CREDENTIALS.email,
-              role: SUPER_ADMIN_CREDENTIALS.role,
+              name: fallbackCreds.name,
+              email: signUpData.user.email || fallbackCreds.email,
+              role: fallbackCreds.role,
             });
             setIsLoading(false);
             return;
@@ -61,10 +74,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
 
       if (data.user) {
         const metadata = data.user.user_metadata || {};
+        const detectedRole = isStaff ? 'Staff' : (metadata.role || fallbackCreds.role);
         onLoginSuccess({
-          name: metadata.name || SUPER_ADMIN_CREDENTIALS.name,
+          name: metadata.name || fallbackCreds.name,
           email: data.user.email || email,
-          role: metadata.role || SUPER_ADMIN_CREDENTIALS.role,
+          role: detectedRole,
         });
       }
     } catch (err: any) {
@@ -123,6 +137,54 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
             }}>
               Login to your account
             </h1>
+
+            {/* Quick Role Switcher */}
+            <div style={{
+              display: 'flex',
+              padding: '4px',
+              backgroundColor: '#f1f5f9',
+              borderRadius: '10px',
+              marginTop: '1.25rem',
+              width: '100%',
+              border: '1px solid #e2e8f0'
+            }}>
+              <button
+                type="button"
+                onClick={() => handleRoleSelect('Super Admin')}
+                style={{
+                  flex: 1,
+                  padding: '7px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: selectedRole === 'Super Admin' ? '#1C2C60' : 'transparent',
+                  color: selectedRole === 'Super Admin' ? '#ffffff' : '#64748b',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Super Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoleSelect('Staff')}
+                style={{
+                  flex: 1,
+                  padding: '7px 12px',
+                  borderRadius: '7px',
+                  border: 'none',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: selectedRole === 'Staff' ? '#1C2C60' : 'transparent',
+                  color: selectedRole === 'Staff' ? '#ffffff' : '#64748b',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Café Staff
+              </button>
+            </div>
           </div>
 
           {errorMessage && (
@@ -256,13 +318,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
                 transition: 'background-color 0.15s ease'
               }}
             >
-              <span>{isLoading ? 'Authenticating with Supabase...' : 'Login as Super Admin →'}</span>
+              <span>
+                {isLoading
+                  ? 'Authenticating with Supabase...'
+                  : selectedRole === 'Super Admin'
+                  ? 'Login as Super Admin →'
+                  : 'Login as Café Staff →'}
+              </span>
             </button>
           </form>
 
           {/* Help Note */}
           <div style={{ marginTop: '1.75rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-            Tallio's Café Operations Platform • Authorized Super Admin Access Only
+            Tallio's Café Operations Platform • {selectedRole === 'Super Admin' ? 'Authorized Super Admin Access' : 'Café Shift Staff Access'}
           </div>
         </div>
 
