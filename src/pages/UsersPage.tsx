@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { CustomerUser, CustomerTier } from '../types';
 import { 
   Users, Search, Plus, Download, Mail, Phone, 
-  CheckCircle, Coffee, Star, X, Eye, MoreVertical, List, Grid 
+  CheckCircle, Coffee, Star, X, Eye, MoreVertical, List, Grid,
+  ChevronLeft, ChevronRight
 } from '../components/icons/Icons';
 import { supabase } from '../lib/supabase';
 
@@ -14,6 +15,7 @@ interface UsersPageProps {
   onDeleteMultipleCustomers?: (ids: string[]) => void;
   triggerToast: (msg: string) => void;
   userRole?: string;
+  userLocation?: string;
 }
 
 export const UsersPage: React.FC<UsersPageProps> = ({
@@ -24,8 +26,11 @@ export const UsersPage: React.FC<UsersPageProps> = ({
   onDeleteMultipleCustomers,
   triggerToast,
   userRole = 'Super Admin',
+  userLocation,
 }) => {
   const isStaff = userRole === 'Staff';
+  const effectiveLocation = isStaff && userLocation ? userLocation : 'Bayview Café';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [membershipFilter, setMembershipFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -36,24 +41,44 @@ export const UsersPage: React.FC<UsersPageProps> = ({
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // New Customer Form State
+  // Form Validation Errors State
+  const [addFormErrors, setAddFormErrors] = useState<{ [key: string]: string }>({});
+  const [editFormErrors, setEditFormErrors] = useState<{ [key: string]: string }>({});
+
+  // Validation Helper: Email format
+  const isValidEmail = (emailStr: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr.trim());
+  };
+
+  // New Customer Form State - staff automatically gets assigned location locked
   const [newCust, setNewCust] = useState({
     name: '',
     email: '',
     phone: '',
     membership: 'Regular' as CustomerTier,
     favoriteDrink: 'Drip Coffee',
-    preferredLocation: 'Bayview Café',
+    preferredLocation: effectiveLocation,
   });
 
-  // KPI Calculations
-  const totalCustomers = customers.length;
-  const mugClubCount = customers.filter(c => c.membership === 'Mug Club Member' || c.membership === 'VIP Gold').length;
-  const activeCount = customers.filter(c => c.status === 'Active').length;
-  const totalSpend = customers.reduce((sum, c) => sum + c.totalSpend, 0);
+  // Validation Helper: Phone format (allows digits, spaces, hyphens, parentheses, optional leading +)
+  const isValidPhone = (phoneStr: string) => {
+    if (!phoneStr.trim()) return true; // phone is optional
+    return /^[+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{7,15}$/.test(phoneStr.trim());
+  };
 
-  // Filtered List
-  const filteredCustomers = customers.filter(c => {
+  // Location-scoped Customers: Staff sees ONLY their location's customers, Admin sees all
+  const locationScopedCustomers = isStaff && userLocation
+    ? customers.filter(c => c.preferredLocation.toLowerCase().includes(userLocation.toLowerCase()) || userLocation.toLowerCase().includes(c.preferredLocation.toLowerCase()))
+    : customers;
+
+  // KPI Calculations (scoped to visible location)
+  const totalCustomers = locationScopedCustomers.length;
+  const mugClubCount = locationScopedCustomers.filter(c => c.membership === 'Mug Club Member' || c.membership === 'VIP Gold').length;
+  const activeCount = locationScopedCustomers.filter(c => c.status === 'Active').length;
+  const totalSpend = locationScopedCustomers.reduce((sum, c) => sum + c.totalSpend, 0);
+
+  // Filtered List based on location-scoped data
+  const filteredCustomers = locationScopedCustomers.filter(c => {
     const matchesSearch = 
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -63,7 +88,21 @@ export const UsersPage: React.FC<UsersPageProps> = ({
     return matchesSearch && matchesMembership && matchesStatus;
   });
 
-  // Export to CSV
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20; // 20 records per page
+
+  // Reset to first page when search/filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, membershipFilter, statusFilter, userLocation]);
+
+  // Total pages
+  const totalPages = Math.ceil(filteredCustomers.length / pageSize) || 1;
+  const paginatedCustomers = filteredCustomers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
   const handleExportCSV = () => {
     const headers = ['ID', 'Name', 'Email', 'Phone', 'Membership', 'Status', 'Total Orders', 'Total Spend ($)', 'Points', 'Joined Date'];
     const rows = filteredCustomers.map(c => [
@@ -92,20 +131,54 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCust.name || !newCust.email) return;
+    const errors: { [key: string]: string } = {};
+
+    // 1. Full Name Validation
+    if (!newCust.name.trim()) {
+      errors.name = 'Full name is required';
+    } else if (newCust.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters';
+    }
+
+    // 2. Email Validation
+    if (!newCust.email.trim()) {
+      errors.email = 'Email address is required';
+    } else if (!isValidEmail(newCust.email)) {
+      errors.email = 'Please enter a valid email address (e.g. name@example.com)';
+    } else {
+      // Duplicate Email Check
+      const isDuplicate = customers.some(
+        c => c.email.toLowerCase() === newCust.email.trim().toLowerCase()
+      );
+      if (isDuplicate) {
+        errors.email = 'A customer with this email address already exists';
+      }
+    }
+
+    // 3. Phone Validation (Optional, but if filled, must be valid)
+    if (newCust.phone.trim() && !isValidPhone(newCust.phone)) {
+      errors.phone = 'Please enter a valid phone number (e.g. +1 (415) 555-0199)';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setAddFormErrors(errors);
+      return;
+    }
+
+    setAddFormErrors({});
 
     const created: CustomerUser = {
       id: `cust-${Date.now().toString().slice(-4)}`,
-      name: newCust.name,
-      email: newCust.email,
-      phone: newCust.phone || '+1 (415) 000-0000',
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newCust.name)}&background=1C2C60&color=fff`,
+      name: newCust.name.trim(),
+      email: newCust.email.trim().toLowerCase(),
+      phone: newCust.phone.trim() || '+1 (415) 555-0199',
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newCust.name.trim())}&background=1C2C60&color=fff`,
       membership: newCust.membership,
       status: 'Active',
       totalOrders: 1,
       totalSpend: 15.00,
       loyaltyPoints: 25,
-      favoriteDrink: newCust.favoriteDrink,
+      favoriteDrink: newCust.favoriteDrink.trim() || 'Drip Coffee',
       preferredLocation: newCust.preferredLocation,
       lastOrderDate: 'Just now',
       joinedDate: 'Today',
@@ -130,7 +203,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       phone: '',
       membership: 'Regular',
       favoriteDrink: 'Drip Coffee',
-      preferredLocation: 'Bayview Café',
+      preferredLocation: effectiveLocation,
     });
     triggerToast(`Customer ${created.name} registered! Welcome & app password setup link sent to ${created.email}`);
   };
@@ -445,14 +518,14 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredCustomers.length === 0 ? (
+                {paginatedCustomers.length === 0 ? (
                   <tr>
                     <td colSpan={isStaff ? 10 : 11} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--muted-foreground)' }}>
                       No customer records found matching your filters.
                     </td>
                   </tr>
                 ) : (
-                  filteredCustomers.map((cust) => {
+                  paginatedCustomers.map((cust) => {
                     const isChecked = selectedIds.includes(cust.id);
                     return (
                       <tr key={cust.id} style={{ backgroundColor: isChecked ? 'rgba(59, 130, 246, 0.05)' : undefined }}>
@@ -720,6 +793,76 @@ export const UsersPage: React.FC<UsersPageProps> = ({
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Footer */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 16px',
+            borderTop: '1px solid var(--border)',
+            fontSize: '0.75rem',
+            color: 'var(--muted-foreground)',
+            backgroundColor: 'var(--card)'
+          }}>
+            <div>
+              Showing <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+                {filteredCustomers.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+              </span> to <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+                {Math.min(currentPage * pageSize, filteredCustomers.length)}
+              </span> of <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+                {filteredCustomers.length}
+              </span> customers
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.72rem',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'transparent',
+                  color: currentPage <= 1 ? 'var(--muted-foreground)' : 'var(--foreground)',
+                  cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage <= 1 ? 0.5 : 1
+                }}
+              >
+                <ChevronLeft size={13} />
+                <span>Prev</span>
+              </button>
+
+              <span style={{ padding: '0 8px', fontWeight: 600, color: 'var(--foreground)' }}>
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  fontSize: '0.72rem',
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'transparent',
+                  color: currentPage >= totalPages ? 'var(--muted-foreground)' : 'var(--foreground)',
+                  cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage >= totalPages ? 0.5 : 1
+                }}
+              >
+                <span>Next</span>
+                <ChevronRight size={13} />
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
         /* Card Grid View matching reference layout */
@@ -729,12 +872,12 @@ export const UsersPage: React.FC<UsersPageProps> = ({
           gap: '1.25rem',
           width: '100%'
         }}>
-          {filteredCustomers.length === 0 ? (
+          {paginatedCustomers.length === 0 ? (
             <div className="rrm-card" style={{ gridColumn: '1 / -1', padding: '3rem 1rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>
               No customer records found matching your filters.
             </div>
           ) : (
-            filteredCustomers.map((cust) => {
+            paginatedCustomers.map((cust) => {
               const isChecked = selectedIds.includes(cust.id);
               const initials = cust.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
@@ -994,6 +1137,78 @@ export const UsersPage: React.FC<UsersPageProps> = ({
         </div>
       )}
 
+      {/* Card View Pagination Footer */}
+      {viewMode === 'card' && filteredCustomers.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          border: '1px solid var(--border)',
+          fontSize: '0.75rem',
+          color: 'var(--muted-foreground)',
+          backgroundColor: 'var(--card)'
+        }}>
+          <div>
+            Showing <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+              {(currentPage - 1) * pageSize + 1}
+            </span> to <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+              {Math.min(currentPage * pageSize, filteredCustomers.length)}
+            </span> of <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
+              {filteredCustomers.length}
+            </span> customers
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 10px',
+                fontSize: '0.72rem',
+                border: '1px solid var(--border)',
+                backgroundColor: 'transparent',
+                color: currentPage <= 1 ? 'var(--muted-foreground)' : 'var(--foreground)',
+                cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                opacity: currentPage <= 1 ? 0.5 : 1
+              }}
+            >
+              <ChevronLeft size={13} />
+              <span>Prev</span>
+            </button>
+
+            <span style={{ padding: '0 8px', fontWeight: 600, color: 'var(--foreground)' }}>
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '5px 10px',
+                fontSize: '0.72rem',
+                border: '1px solid var(--border)',
+                backgroundColor: 'transparent',
+                color: currentPage >= totalPages ? 'var(--muted-foreground)' : 'var(--foreground)',
+                cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                opacity: currentPage >= totalPages ? 0.5 : 1
+              }}
+            >
+              <span>Next</span>
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 4. Customer Details Modal */}
       {selectedCustomer && (
         <div style={{
@@ -1180,6 +1395,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
             <form onSubmit={handleCreateCustomer}>
               <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Full Name Field */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '6px' }}>Full Name *</label>
                   <input
@@ -1187,12 +1403,25 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                     required
                     placeholder="e.g. Jordan Smith"
                     value={newCust.name}
-                    onChange={(e) => setNewCust({ ...newCust, name: e.target.value })}
+                    onChange={(e) => {
+                      setNewCust({ ...newCust, name: e.target.value });
+                      if (addFormErrors.name) setAddFormErrors({ ...addFormErrors, name: '' });
+                    }}
                     className="rrm-input"
-                    style={{ width: '100%', height: '38px' }}
+                    style={{
+                      width: '100%',
+                      height: '38px',
+                      border: addFormErrors.name ? '1px solid #ef4444' : undefined
+                    }}
                   />
+                  {addFormErrors.name && (
+                    <span style={{ fontSize: '0.6875rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {addFormErrors.name}
+                    </span>
+                  )}
                 </div>
 
+                {/* Email Address Field */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '6px' }}>Email Address *</label>
                   <input
@@ -1200,22 +1429,47 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                     required
                     placeholder="jordan.smith@example.com"
                     value={newCust.email}
-                    onChange={(e) => setNewCust({ ...newCust, email: e.target.value })}
+                    onChange={(e) => {
+                      setNewCust({ ...newCust, email: e.target.value });
+                      if (addFormErrors.email) setAddFormErrors({ ...addFormErrors, email: '' });
+                    }}
                     className="rrm-input"
-                    style={{ width: '100%', height: '38px' }}
+                    style={{
+                      width: '100%',
+                      height: '38px',
+                      border: addFormErrors.email ? '1px solid #ef4444' : undefined
+                    }}
                   />
+                  {addFormErrors.email && (
+                    <span style={{ fontSize: '0.6875rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {addFormErrors.email}
+                    </span>
+                  )}
                 </div>
 
+                {/* Phone Number Field */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '6px' }}>Phone Number</label>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '6px' }}>Phone Number (Optional)</label>
                   <input
                     type="tel"
                     placeholder="+1 (415) 555-0199"
                     value={newCust.phone}
-                    onChange={(e) => setNewCust({ ...newCust, phone: e.target.value })}
+                    onChange={(e) => {
+                      setNewCust({ ...newCust, phone: e.target.value });
+                      if (addFormErrors.phone) setAddFormErrors({ ...addFormErrors, phone: '' });
+                    }}
                     className="rrm-input"
-                    style={{ width: '100%', height: '38px' }}
+                    style={{
+                      width: '100%',
+                      height: '38px',
+                      border: addFormErrors.phone ? '1px solid #ef4444' : undefined
+                    }}
                   />
+                  {addFormErrors.phone && (
+                    <span style={{ fontSize: '0.6875rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {addFormErrors.phone}
+                    </span>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1234,18 +1488,55 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '6px' }}>Preferred Location</label>
-                    <select
-                      value={newCust.preferredLocation}
-                      onChange={(e) => setNewCust({ ...newCust, preferredLocation: e.target.value })}
-                      className="rrm-input"
-                      style={{ width: '100%', height: '38px' }}
-                    >
-                      <option value="Bayview Café">Bayview Café</option>
-                      <option value="Mobile Food Truck #1">Mobile Food Truck #1</option>
-                      <option value="Mobile Food Truck #2">Mobile Food Truck #2</option>
-                      <option value="Tech Park Express Kiosk">Tech Park Express Kiosk</option>
-                    </select>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, marginBottom: '6px' }}>
+                      Location {isStaff ? '(Assigned Location)' : '(Select Location)'}
+                    </label>
+                    {isStaff ? (
+                      /* Staff View: Locked read-only location badge with clean single-line alignment */
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        height: '38px',
+                        padding: '0 12px',
+                        backgroundColor: 'var(--muted)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--foreground)',
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        gap: '8px',
+                        overflow: 'hidden'
+                      }}>
+                        <span style={{
+                          display: 'inline-block',
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: '#10b981',
+                          flexShrink: 0
+                        }}></span>
+                        <span style={{
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          fontSize: '0.8125rem'
+                        }}>
+                          {(userLocation || 'Bayview Café').split('(')[0].trim()}
+                        </span>
+                      </div>
+                    ) : (
+                      /* Super Admin View: Full Dropdown to assign to any location */
+                      <select
+                        value={newCust.preferredLocation}
+                        onChange={(e) => setNewCust({ ...newCust, preferredLocation: e.target.value })}
+                        className="rrm-input"
+                        style={{ width: '100%', height: '38px' }}
+                      >
+                        <option value="Bayview Café">Bayview Café</option>
+                        <option value="Mobile Food Truck #1">Mobile Food Truck #1</option>
+                        <option value="Mobile Food Truck #2">Mobile Food Truck #2</option>
+                        <option value="Tech Park Express Kiosk">Tech Park Express Kiosk</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 
@@ -1350,8 +1641,46 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
             <form onSubmit={(e) => {
               e.preventDefault();
+              const errors: { [key: string]: string } = {};
+
+              if (!editingCustomer.name.trim()) {
+                errors.name = 'Full name is required';
+              } else if (editingCustomer.name.trim().length < 2) {
+                errors.name = 'Name must be at least 2 characters';
+              }
+
+              if (!editingCustomer.email.trim()) {
+                errors.email = 'Email address is required';
+              } else if (!isValidEmail(editingCustomer.email)) {
+                errors.email = 'Please enter a valid email address';
+              } else {
+                // Duplicate email check excluding current customer
+                const isDuplicate = customers.some(
+                  c => c.id !== editingCustomer.id && c.email.toLowerCase() === editingCustomer.email.trim().toLowerCase()
+                );
+                if (isDuplicate) {
+                  errors.email = 'Another customer already uses this email';
+                }
+              }
+
+              if (editingCustomer.phone.trim() && !isValidPhone(editingCustomer.phone)) {
+                errors.phone = 'Please enter a valid phone number';
+              }
+
+              if (Object.keys(errors).length > 0) {
+                setEditFormErrors(errors);
+                return;
+              }
+
+              setEditFormErrors({});
               if (onUpdateCustomer && editingCustomer) {
-                onUpdateCustomer(editingCustomer);
+                onUpdateCustomer({
+                  ...editingCustomer,
+                  name: editingCustomer.name.trim(),
+                  email: editingCustomer.email.trim().toLowerCase(),
+                  phone: editingCustomer.phone.trim(),
+                  favoriteDrink: editingCustomer.favoriteDrink.trim(),
+                });
                 triggerToast(`Customer ${editingCustomer.name} updated successfully!`);
               }
               setEditingCustomer(null);
@@ -1363,10 +1692,22 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                     type="text"
                     required
                     value={editingCustomer.name}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                    onChange={(e) => {
+                      setEditingCustomer({ ...editingCustomer, name: e.target.value });
+                      if (editFormErrors.name) setEditFormErrors({ ...editFormErrors, name: '' });
+                    }}
                     className="rrm-input"
-                    style={{ width: '100%', height: '38px' }}
+                    style={{
+                      width: '100%',
+                      height: '38px',
+                      border: editFormErrors.name ? '1px solid #ef4444' : undefined
+                    }}
                   />
+                  {editFormErrors.name && (
+                    <span style={{ fontSize: '0.6875rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {editFormErrors.name}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -1375,10 +1716,22 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                     type="email"
                     required
                     value={editingCustomer.email}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                    onChange={(e) => {
+                      setEditingCustomer({ ...editingCustomer, email: e.target.value });
+                      if (editFormErrors.email) setEditFormErrors({ ...editFormErrors, email: '' });
+                    }}
                     className="rrm-input"
-                    style={{ width: '100%', height: '38px' }}
+                    style={{
+                      width: '100%',
+                      height: '38px',
+                      border: editFormErrors.email ? '1px solid #ef4444' : undefined
+                    }}
                   />
+                  {editFormErrors.email && (
+                    <span style={{ fontSize: '0.6875rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {editFormErrors.email}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -1386,10 +1739,22 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                   <input
                     type="tel"
                     value={editingCustomer.phone}
-                    onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+                    onChange={(e) => {
+                      setEditingCustomer({ ...editingCustomer, phone: e.target.value });
+                      if (editFormErrors.phone) setEditFormErrors({ ...editFormErrors, phone: '' });
+                    }}
                     className="rrm-input"
-                    style={{ width: '100%', height: '38px' }}
+                    style={{
+                      width: '100%',
+                      height: '38px',
+                      border: editFormErrors.phone ? '1px solid #ef4444' : undefined
+                    }}
                   />
+                  {editFormErrors.phone && (
+                    <span style={{ fontSize: '0.6875rem', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+                      {editFormErrors.phone}
+                    </span>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

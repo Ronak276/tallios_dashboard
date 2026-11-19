@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from '../icons/Icons';
-import { supabase, SUPER_ADMIN_CREDENTIALS, STAFF_CREDENTIALS } from '../../lib/supabase';
+import { supabase, SUPER_ADMIN_CREDENTIALS, STAFF_CREDENTIALS, ALL_STAFF_ACCOUNTS } from '../../lib/supabase';
 
 interface AuthPageProps {
-  onLoginSuccess: (user: { name: string; email: string; role: string }) => void;
+  onLoginSuccess: (user: { name: string; email: string; role: string; assignedLocation?: string }) => void;
   darkMode?: boolean;
 }
 
@@ -32,53 +32,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
     setIsLoading(true);
     setErrorMessage(null);
 
-    const isStaff = email.trim().toLowerCase() === STAFF_CREDENTIALS.email.toLowerCase();
-    const fallbackCreds = isStaff ? STAFF_CREDENTIALS : SUPER_ADMIN_CREDENTIALS;
-
     try {
-      // 1. Authenticate with Supabase
+      // Authenticate directly with Supabase - strict security (No auto-signup bypass)
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password,
       });
 
       if (error) {
-        // If account doesn't exist yet in Supabase auth, provision automatically
-        if (error.message.includes('Invalid login') || error.message.includes('User not found')) {
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: fallbackCreds.email,
-            password: fallbackCreds.password,
-            options: {
-              data: {
-                name: fallbackCreds.name,
-                role: fallbackCreds.role,
-              },
-            },
-          });
-
-          if (!signUpError && signUpData.user) {
-            onLoginSuccess({
-              name: fallbackCreds.name,
-              email: signUpData.user.email || fallbackCreds.email,
-              role: fallbackCreds.role,
-            });
-            setIsLoading(false);
-            return;
-          }
-        }
-
-        setErrorMessage(error.message || 'Authentication failed. Please verify credentials.');
+        setErrorMessage(error.message || 'Invalid email or password. Please verify your credentials.');
         setIsLoading(false);
         return;
       }
 
       if (data.user) {
         const metadata = data.user.user_metadata || {};
-        const detectedRole = isStaff ? 'Staff' : (metadata.role || fallbackCreds.role);
+        const userEmail = data.user.email || email;
+        const isStaffUser = userEmail.toLowerCase() !== SUPER_ADMIN_CREDENTIALS.email.toLowerCase();
+        const detectedRole = isStaffUser ? 'Staff' : 'Super Admin';
+        
         onLoginSuccess({
-          name: metadata.name || fallbackCreds.name,
-          email: data.user.email || email,
+          name: metadata.name || (isStaffUser ? 'Café Staff' : SUPER_ADMIN_CREDENTIALS.name),
+          email: userEmail,
           role: detectedRole,
+          assignedLocation: metadata.assignedLocation || (isStaffUser ? 'Bayview Café' : 'All Locations'),
         });
       }
     } catch (err: any) {
@@ -185,6 +162,45 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
                 Café Staff
               </button>
             </div>
+
+            {/* Quick Location Pills when Staff is selected */}
+            {selectedRole === 'Staff' && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '6px',
+                width: '100%',
+                marginTop: '10px'
+              }}>
+                {ALL_STAFF_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.email}
+                    type="button"
+                    onClick={() => {
+                      setEmail(acc.email);
+                      setPassword(acc.password);
+                    }}
+                    style={{
+                      padding: '6px 8px',
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      borderRadius: '6px',
+                      border: email === acc.email ? '1px solid #1C2C60' : '1px solid #cbd5e1',
+                      backgroundColor: email === acc.email ? 'rgba(28, 44, 96, 0.08)' : '#ffffff',
+                      color: email === acc.email ? '#1C2C60' : '#475569',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                    title={acc.location}
+                  >
+                    📍 {acc.location.split('(')[0].trim()}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {errorMessage && (

@@ -11,6 +11,8 @@ interface OverviewPageProps {
   onNewOrder?: () => void;
   selectedLocation: LocationId | 'all';
   onLocationChange: (loc: LocationId | 'all') => void;
+  userRole?: string;
+  userLocation?: string;
 }
 
 interface OrderItem {
@@ -38,8 +40,28 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   onNewOrder,
   selectedLocation,
   onLocationChange,
+  userRole = 'Super Admin',
+  userLocation,
 }) => {
-  const [ordersList, setOrdersList] = React.useState<OrderItem[]>([
+  const isStaff = userRole === 'Staff';
+
+  // Active Location Name display
+  const activeLocationDisplayName = isStaff
+    ? (userLocation || 'Bayview Café').split('(')[0].trim()
+    : (selectedLocation === 'loc-truck-1' ? 'Downtown Food Truck #1' :
+       selectedLocation === 'loc-truck-2' ? 'Harbor Marina Truck #2' :
+       selectedLocation === 'loc-kiosk-tech' ? 'Tech Park Express Kiosk' :
+       'Bayview Café (Roastery HQ)');
+
+  // Location ID mapping helper
+  const activeLocId = isStaff
+    ? (userLocation?.toLowerCase().includes('truck1') || userLocation?.toLowerCase().includes('truck #1') ? 'loc-truck-1' :
+       userLocation?.toLowerCase().includes('truck2') || userLocation?.toLowerCase().includes('truck #2') ? 'loc-truck-2' :
+       userLocation?.toLowerCase().includes('kiosk') ? 'loc-kiosk-tech' : 'loc-main')
+    : selectedLocation;
+
+  // Mock orders with location tags
+  const [ordersList, setOrdersList] = React.useState<(OrderItem & { locationId: LocationId })[]>([
     {
       id: 'ord-1039',
       orderNumber: '#1039',
@@ -50,6 +72,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       status: 'New',
       total: 12.00,
       images: ['/item_latte.jpg', '/item_pastry.jpg'],
+      locationId: 'loc-main',
     },
     {
       id: 'ord-1038',
@@ -61,6 +84,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       status: 'Preparing',
       total: 16.00,
       images: ['/item_coffee.jpg', '/item_toast.jpg'],
+      locationId: 'loc-kiosk-tech',
     },
     {
       id: 'ord-1037',
@@ -72,6 +96,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       status: 'Ready',
       total: 14.00,
       images: ['/item_coldbrew.jpg'],
+      locationId: 'loc-truck-1',
     },
     {
       id: 'ord-1036',
@@ -83,23 +108,61 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       status: 'Completed',
       total: 6.00,
       images: ['/item_ginger.jpg'],
+      locationId: 'loc-main',
+    },
+    {
+      id: 'ord-1035',
+      orderNumber: '#1035',
+      time: '10:20 AM',
+      customerName: 'Chloe Kensington',
+      type: 'Take away',
+      details: '1 × Matcha Latte',
+      status: 'Ready',
+      total: 7.50,
+      images: ['/item_latte.jpg'],
+      locationId: 'loc-truck-2',
     },
   ]);
 
-  const stockAlerts: StockAlert[] = [
+  const stockAlertsAll: (StockAlert & { locationId: LocationId })[] = [
     {
       id: 'stock-1',
       name: 'Oat milk',
       category: 'Dairy & alternatives',
       quantity: '4 cartons',
+      locationId: 'loc-main',
     },
     {
       id: 'stock-2',
       name: 'Butter croissants',
       category: 'Bakery',
       quantity: '6 pcs',
+      locationId: 'loc-truck-1',
+    },
+    {
+      id: 'stock-3',
+      name: 'Cold Brew Kegs',
+      category: 'Beans & Roasts',
+      quantity: '2 kegs',
+      locationId: 'loc-truck-2',
+    },
+    {
+      id: 'stock-4',
+      name: '12oz Paper Cups',
+      category: 'Packaging',
+      quantity: '50 pcs',
+      locationId: 'loc-kiosk-tech',
     },
   ];
+
+  // Scoped Data by Location
+  const scopedOrdersList = isStaff
+    ? ordersList.filter(o => o.locationId === activeLocId)
+    : (selectedLocation === 'all' ? ordersList : ordersList.filter(o => o.locationId === selectedLocation));
+
+  const stockAlerts = isStaff
+    ? stockAlertsAll.filter(s => s.locationId === activeLocId)
+    : (selectedLocation === 'all' ? stockAlertsAll : stockAlertsAll.filter(s => s.locationId === selectedLocation));
 
   const handleAction = (orderId: string, currentStatus: OrderItem['status']) => {
     setOrdersList((prev) =>
@@ -113,12 +176,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     );
   };
 
-  const openOrdersCount = ordersList.filter(o => o.status !== 'Completed').length;
-  const readyForPickupCount = ordersList.filter(o => o.status === 'Ready').length;
+  const openOrdersCount = scopedOrdersList.filter(o => o.status !== 'Completed').length;
+  const readyForPickupCount = scopedOrdersList.filter(o => o.status === 'Ready').length;
   const lowStockCount = stockAlerts.length;
-  const completedSalesTotal = ordersList
+  const completedSalesTotal = scopedOrdersList
     .filter(o => o.status === 'Completed')
-    .reduce((sum, o) => sum + o.total, 23.00);
+    .reduce((sum, o) => sum + o.total, 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%' }}>
@@ -130,45 +193,63 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             Operations overview
           </h1>
           <p style={{ margin: '3px 0 0', fontSize: '0.8125rem', color: 'var(--muted-foreground)', fontWeight: 500 }}>
-            Bayview Café
+            {activeLocationDisplayName}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Location Selector (Theme Sharp Style) */}
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            backgroundColor: 'var(--card)',
-            border: '1px solid var(--border)',
-            borderRadius: '0px',
-            padding: '6px 12px',
-            fontSize: '0.8125rem',
-            fontWeight: 600,
-            color: 'var(--foreground)'
-          }}>
-            <MapPin size={14} style={{ color: '#2888E6' }} />
-            <select
-              value={selectedLocation === 'all' ? 'loc-main' : selectedLocation}
-              onChange={(e) => onLocationChange(e.target.value as any)}
-              style={{
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-                fontWeight: 600,
-                color: 'var(--foreground)',
-                fontSize: '0.8125rem',
-                cursor: 'pointer',
-                paddingRight: '4px'
-              }}
-            >
-              <option value="loc-main">Bayview Café</option>
-              <option value="loc-truck-1">Downtown Food Truck #1</option>
-              <option value="loc-truck-2">Harbor Marina Truck #2</option>
-              <option value="loc-kiosk-tech">Tech Park Express Kiosk</option>
-            </select>
-          </div>
+          {/* Location Indicator: Staff gets locked direct location badge; Super Admin gets dropdown */}
+          {isStaff ? (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
+              borderRadius: '0px',
+              padding: '6px 12px',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              color: 'var(--foreground)'
+            }}>
+              <MapPin size={14} style={{ color: '#10b981' }} />
+              <span>{userLocation || 'Bayview Café'}</span>
+            </div>
+          ) : (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
+              borderRadius: '0px',
+              padding: '6px 12px',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              color: 'var(--foreground)'
+            }}>
+              <MapPin size={14} style={{ color: '#2888E6' }} />
+              <select
+                value={selectedLocation === 'all' ? 'loc-main' : selectedLocation}
+                onChange={(e) => onLocationChange(e.target.value as any)}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  fontWeight: 600,
+                  color: 'var(--foreground)',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  paddingRight: '4px'
+                }}
+              >
+                <option value="loc-main">Bayview Café</option>
+                <option value="loc-truck-1">Downtown Food Truck #1</option>
+                <option value="loc-truck-2">Harbor Marina Truck #2</option>
+                <option value="loc-kiosk-tech">Tech Park Express Kiosk</option>
+              </select>
+            </div>
+          )}
 
           <button
             onClick={onNewOrder}
@@ -211,7 +292,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         <div style={{ maxWidth: '600px', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600, color: '#C68A4C', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             <Coffee size={15} />
-            <span>Bayview Café</span>
+            <span>{activeLocationDisplayName}</span>
           </div>
 
           <h2 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0, letterSpacing: '-0.02em', color: '#ffffff', lineHeight: 1.15 }}>
@@ -381,7 +462,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           <div className="rrm-card-header" style={{ padding: '1rem 1.25rem' }}>
             <div>
               <h3 className="rrm-card-title uppercase" style={{ fontSize: '0.875rem' }}>Recent orders</h3>
-              <p className="rrm-card-description">Latest orders at Bayview Café</p>
+              <p className="rrm-card-description">Latest orders at {activeLocationDisplayName}</p>
             </div>
             <button
               onClick={onNavigateToOrders}
@@ -410,7 +491,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {ordersList.map((order) => {
+                {scopedOrdersList.map((order) => {
                   let badgeClass = 'rrm-badge';
                   if (order.status === 'New') {
                     badgeClass = 'rrm-badge rrm-badge-coffee';

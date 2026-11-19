@@ -16,43 +16,52 @@ export const SUPER_ADMIN_CREDENTIALS = {
   password: 'password123',
   name: "Tallio's Super Admin",
   role: 'Super Admin',
+  assignedLocation: 'All Locations',
 };
 
 export const STAFF_CREDENTIALS = {
-  email: 'staff@tallioscoffee.com',
+  email: 'truck1@tallioscoffee.com',
   password: 'password123',
-  name: "Tallio's Café Staff",
+  name: "Truck #1 Barista",
   role: 'Staff',
+  assignedLocation: 'Mobile Food Truck #1',
 };
 
+export const ALL_STAFF_ACCOUNTS = [
+  {
+    email: 'staff.bayview@tallioscoffee.com',
+    password: 'password123',
+    name: 'Bayview Shift Lead',
+    role: 'Staff',
+    location: 'Bayview Café',
+  },
+  {
+    email: 'truck1@tallioscoffee.com',
+    password: 'password123',
+    name: 'Truck #1 Barista',
+    role: 'Staff',
+    location: 'Mobile Food Truck #1',
+  },
+  {
+    email: 'truck2@tallioscoffee.com',
+    password: 'password123',
+    name: 'Truck #2 Barista',
+    role: 'Staff',
+    location: 'Mobile Food Truck #2',
+  },
+  {
+    email: 'kiosk@tallioscoffee.com',
+    password: 'password123',
+    name: 'Tech Park Kiosk Lead',
+    role: 'Staff',
+    location: 'Tech Park Express Kiosk',
+  },
+];
+
 /**
- * Ensures the super admin user exists in Supabase.
- * If user does not exist, attempts to create it via signUp.
+ * Strictly verifies super admin credentials against Supabase without auto-creation.
  */
 export async function ensureSuperAdminExists() {
-  try {
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: SUPER_ADMIN_CREDENTIALS.email,
-      password: SUPER_ADMIN_CREDENTIALS.password,
-    });
-
-    if (signInError && (signInError.message.includes('Invalid login') || signInError.message.includes('User not found'))) {
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: SUPER_ADMIN_CREDENTIALS.email,
-        password: SUPER_ADMIN_CREDENTIALS.password,
-        options: {
-          data: {
-            name: SUPER_ADMIN_CREDENTIALS.name,
-            role: SUPER_ADMIN_CREDENTIALS.role,
-          },
-        },
-      });
-
-      if (signUpError) {
-        console.warn('Super Admin auto-seed note:', signUpError.message);
-      }
-    }
-  } catch (err) {
-    console.error('Error verifying super admin account:', err);
-  }
+  // Production security: Auto-creation disabled. Only pre-provisioned database accounts can authenticate.
+  return;
 }

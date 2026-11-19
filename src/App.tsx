@@ -24,7 +24,7 @@ import { InventoryPage } from './pages/InventoryPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { UsersPage } from './pages/UsersPage';
 import { LogOut } from './components/icons/Icons';
-import { supabase, SUPER_ADMIN_CREDENTIALS } from './lib/supabase';
+import { supabase, SUPER_ADMIN_CREDENTIALS, STAFF_CREDENTIALS } from './lib/supabase';
 
 export function App() {
   const [darkMode, setDarkMode] = React.useState(false);
@@ -70,6 +70,40 @@ export function App() {
     return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
   });
 
+  // Supabase Database Real-time Sync for Customers
+  React.useEffect(() => {
+    // 1. Fetch initial customers from Supabase table
+    const fetchCustomers = async () => {
+      try {
+        const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          const mapped: CustomerUser[] = data.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            email: d.email,
+            phone: d.phone || '+1 (415) 555-0199',
+            avatar: d.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name)}&background=1C2C60&color=fff`,
+            membership: d.membership || 'Regular',
+            status: d.status || 'Active',
+            totalOrders: d.total_orders || 0,
+            totalSpend: Number(d.total_spend || 0),
+            loyaltyPoints: d.loyalty_points || 0,
+            favoriteDrink: d.favorite_drink || 'Drip Coffee',
+            preferredLocation: d.preferred_location || 'Bayview Café',
+            lastOrderDate: d.last_order_at ? new Date(d.last_order_at).toLocaleDateString() : 'Just now',
+            joinedDate: d.created_at ? new Date(d.created_at).toLocaleDateString() : 'Today',
+          }));
+          setCustomers(mapped);
+          localStorage.setItem('tallios_customers', JSON.stringify(mapped));
+        }
+      } catch (err) {
+        console.warn('Note on Supabase table fetch:', err);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
+
   React.useEffect(() => {
     localStorage.setItem('tallios_customers', JSON.stringify(customers));
   }, [customers]);
@@ -82,7 +116,7 @@ export function App() {
   const [showReceiptModal, setShowReceiptModal] = React.useState(false);
   const [showAuthModal, setShowAuthModal] = React.useState(false);
   const [authMode] = React.useState<'login' | 'signup'>('login');
-  const [currentUser, setCurrentUser] = React.useState<{ name: string; email: string; role: string } | null>(() => {
+  const [currentUser, setCurrentUser] = React.useState<{ name: string; email: string; role: string; assignedLocation?: string } | null>(() => {
     const saved = localStorage.getItem('tallios_user');
     return saved ? JSON.parse(saved) : null;
   });
@@ -93,10 +127,13 @@ export function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         const metadata = session.user.user_metadata || {};
+        const isStaff = (session.user.email || '').toLowerCase() === STAFF_CREDENTIALS.email.toLowerCase();
+        const fallbackCreds = isStaff ? STAFF_CREDENTIALS : SUPER_ADMIN_CREDENTIALS;
         const userObj = {
-          name: metadata.name || SUPER_ADMIN_CREDENTIALS.name,
-          email: session.user.email || SUPER_ADMIN_CREDENTIALS.email,
-          role: metadata.role || SUPER_ADMIN_CREDENTIALS.role,
+          name: metadata.name || fallbackCreds.name,
+          email: session.user.email || fallbackCreds.email,
+          role: metadata.role || fallbackCreds.role,
+          assignedLocation: metadata.assignedLocation || fallbackCreds.assignedLocation,
         };
         setCurrentUser(userObj);
         localStorage.setItem('tallios_user', JSON.stringify(userObj));
@@ -107,10 +144,13 @@ export function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         const metadata = session.user.user_metadata || {};
+        const isStaff = (session.user.email || '').toLowerCase() === STAFF_CREDENTIALS.email.toLowerCase();
+        const fallbackCreds = isStaff ? STAFF_CREDENTIALS : SUPER_ADMIN_CREDENTIALS;
         const userObj = {
-          name: metadata.name || SUPER_ADMIN_CREDENTIALS.name,
-          email: session.user.email || SUPER_ADMIN_CREDENTIALS.email,
-          role: metadata.role || SUPER_ADMIN_CREDENTIALS.role,
+          name: metadata.name || fallbackCreds.name,
+          email: session.user.email || fallbackCreds.email,
+          role: metadata.role || fallbackCreds.role,
+          assignedLocation: metadata.assignedLocation || fallbackCreds.assignedLocation,
         };
         setCurrentUser(userObj);
         localStorage.setItem('tallios_user', JSON.stringify(userObj));
@@ -220,22 +260,31 @@ export function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Filtered inventory
-  const filteredInventoryCount = inventory.filter((item) => {
-    const matchesLocation = selectedLocation === 'all' || item.locationId === selectedLocation;
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesSearch = 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.batchNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesLocation && matchesCategory && matchesSearch;
-  }).length;
-  void filteredInventoryCount;
+  // Location ID mapping helper
+  const getEffectiveLocationId = (locName?: string): LocationId | 'all' => {
+    if (!locName || currentUser?.role !== 'Staff') return selectedLocation;
+    const lower = locName.toLowerCase();
+    if (lower.includes('truck #1') || lower.includes('truck1') || lower.includes('downtown')) return 'loc-truck-1';
+    if (lower.includes('truck #2') || lower.includes('truck2') || lower.includes('harbor') || lower.includes('farmers')) return 'loc-truck-2';
+    if (lower.includes('kiosk') || lower.includes('tech park')) return 'loc-kiosk-tech';
+    return 'loc-main';
+  };
 
-  // KPI Calculations
-  const totalSKUs = inventory.length;
-  const lowStockCount = inventory.filter(i => i.status === 'Low Stock' || i.status === 'Critical').length;
-  const totalValuation = inventory.reduce((sum, item) => sum + (item.stock * item.costPerUnit), 0);
+  const activeScopeLocationId = getEffectiveLocationId(currentUser?.assignedLocation);
+
+  // Scoped Data by User Role & Location
+  const scopedInventory = currentUser?.role === 'Staff'
+    ? inventory.filter(item => item.locationId === activeScopeLocationId)
+    : (selectedLocation === 'all' ? inventory : inventory.filter(item => item.locationId === selectedLocation));
+
+  const scopedOrders = currentUser?.role === 'Staff'
+    ? orders.filter(order => order.locationId === activeScopeLocationId)
+    : (selectedLocation === 'all' ? orders : orders.filter(order => order.locationId === selectedLocation));
+
+  // KPI Calculations (Scoped)
+  const totalSKUs = scopedInventory.length;
+  const lowStockCount = scopedInventory.filter(i => i.status === 'Low Stock' || i.status === 'Critical').length;
+  const totalValuation = scopedInventory.reduce((sum, item) => sum + (item.stock * item.costPerUnit), 0);
   const totalSubscriptionRevenue = members
     .filter(m => m.subscriptionPlan !== 'None')
     .reduce((sum, m) => sum + m.monthlySpend, 0);
@@ -756,6 +805,8 @@ export function App() {
               onNavigateToOrders={() => setActiveTab('orders')}
               onNavigateToInventory={() => setActiveTab('inventory')}
               onNewOrder={() => setShowAddModal(true)}
+              userRole={currentUser?.role}
+              userLocation={currentUser?.assignedLocation}
             />
           )}
 
@@ -819,7 +870,7 @@ export function App() {
           {/* TAB 1: RAW INGREDIENTS & COFFEE STOCK */}
           {activeTab === 'inventory' && (
             <InventoryPage
-              inventory={inventory}
+              inventory={scopedInventory}
               setInventory={setInventory}
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
@@ -938,7 +989,7 @@ export function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {orders.map(order => (
+                        {scopedOrders.map(order => (
                           <tr key={order.id}>
                             <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)' }}>
                               {order.orderNumber}
@@ -1028,7 +1079,7 @@ export function App() {
                 </div>
               ) : (
                 <div className="cards-three-grid">
-                {orders.map(order => {
+                {scopedOrders.map(order => {
                   const loc = LOCATIONS.find(l => l.id === order.locationId);
                   return (
                     <div key={order.id} className="rrm-card">
@@ -1449,17 +1500,60 @@ export function App() {
             <UsersPage
               customers={customers}
               userRole={currentUser?.role}
-              onAddCustomer={(newCust) => {
+              userLocation={currentUser?.assignedLocation}
+              onAddCustomer={async (newCust) => {
                 setCustomers(prev => [newCust, ...prev]);
+                // Sync direct to Supabase
+                try {
+                  await supabase.from('customers').insert([{
+                    id: newCust.id,
+                    name: newCust.name,
+                    email: newCust.email,
+                    phone: newCust.phone,
+                    avatar: newCust.avatar,
+                    membership: newCust.membership,
+                    status: newCust.status,
+                    total_orders: newCust.totalOrders,
+                    total_spend: newCust.totalSpend,
+                    loyalty_points: newCust.loyaltyPoints,
+                    favorite_drink: newCust.favoriteDrink,
+                    preferred_location: newCust.preferredLocation,
+                  }]);
+                } catch (e) {
+                  console.warn('Supabase customer insert sync note:', e);
+                }
               }}
-              onUpdateCustomer={(updatedCust) => {
+              onUpdateCustomer={async (updatedCust) => {
                 setCustomers(prev => prev.map(c => c.id === updatedCust.id ? updatedCust : c));
+                // Sync direct to Supabase
+                try {
+                  await supabase.from('customers').update({
+                    name: updatedCust.name,
+                    email: updatedCust.email,
+                    phone: updatedCust.phone,
+                    membership: updatedCust.membership,
+                    status: updatedCust.status,
+                    favorite_drink: updatedCust.favoriteDrink,
+                  }).eq('id', updatedCust.id);
+                } catch (e) {
+                  console.warn('Supabase customer update sync note:', e);
+                }
               }}
-              onDeleteCustomer={(id) => {
+              onDeleteCustomer={async (id) => {
                 setCustomers(prev => prev.filter(c => c.id !== id));
+                try {
+                  await supabase.from('customers').delete().eq('id', id);
+                } catch (e) {
+                  console.warn('Supabase customer delete sync note:', e);
+                }
               }}
-              onDeleteMultipleCustomers={(ids) => {
+              onDeleteMultipleCustomers={async (ids) => {
                 setCustomers(prev => prev.filter(c => !ids.includes(c.id)));
+                try {
+                  await supabase.from('customers').delete().in('id', ids);
+                } catch (e) {
+                  console.warn('Supabase customer bulk delete sync note:', e);
+                }
               }}
               triggerToast={triggerToast}
             />
