@@ -203,32 +203,32 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.4rem',
               backgroundColor: 'var(--card)',
               border: '1px solid var(--border)',
               borderRadius: '0px',
-              padding: '6px 12px',
-              fontSize: '0.8125rem',
+              padding: '4px 8px',
+              fontSize: '0.75rem',
               fontWeight: 600,
               color: 'var(--foreground)'
             }}>
-              <MapPin size={14} style={{ color: '#10b981' }} />
+              <MapPin size={13} style={{ color: '#10b981' }} />
               <span>{userLocation || 'Bayview Café'}</span>
             </div>
           ) : (
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.35rem',
               backgroundColor: 'var(--card)',
               border: '1px solid var(--border)',
               borderRadius: '0px',
-              padding: '6px 12px',
-              fontSize: '0.8125rem',
+              padding: '4px 8px',
+              fontSize: '0.75rem',
               fontWeight: 600,
               color: 'var(--foreground)'
             }}>
-              <MapPin size={14} style={{ color: '#2888E6' }} />
+              <MapPin size={13} style={{ color: '#2888E6', flexShrink: 0 }} />
               <select
                 value={selectedLocation === 'all' ? 'loc-main' : selectedLocation}
                 onChange={(e) => onLocationChange(e.target.value as any)}
@@ -238,9 +238,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                   background: 'transparent',
                   fontWeight: 600,
                   color: 'var(--foreground)',
-                  fontSize: '0.8125rem',
+                  fontSize: '0.75rem',
                   cursor: 'pointer',
-                  paddingRight: '4px'
+                  paddingRight: '2px'
                 }}
               >
                 <option value="loc-main">Bayview Café</option>
@@ -255,15 +255,15 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             onClick={onNewOrder}
             className="rrm-btn-primary"
             style={{
-              padding: '8px 16px',
-              fontSize: '0.8125rem',
+              padding: '6px 12px',
+              fontSize: '0.75rem',
               fontWeight: 600,
               borderRadius: '0px',
               cursor: 'pointer'
             }}
           >
-            <Plus size={15} />
-            <span>+ New order</span>
+            <Plus size={13} />
+            <span>New order</span>
           </button>
         </div>
       </div>

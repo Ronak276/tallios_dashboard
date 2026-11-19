@@ -103,30 +103,33 @@ export const UsersPage: React.FC<UsersPageProps> = ({
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
-  const handleExportCSV = () => {
+  const handleExportExcel = () => {
     const headers = ['ID', 'Name', 'Email', 'Phone', 'Membership', 'Status', 'Total Orders', 'Total Spend ($)', 'Points', 'Joined Date'];
     const rows = filteredCustomers.map(c => [
       c.id,
-      `"${c.name}"`,
-      c.email,
-      c.phone,
-      c.membership,
-      c.status,
+      `"${c.name.replace(/"/g, '""')}"`,
+      `"${c.email.replace(/"/g, '""')}"`,
+      `"${c.phone.replace(/"/g, '""')}"`,
+      `"${c.membership}"`,
+      `"${c.status}"`,
       c.totalOrders,
       c.totalSpend.toFixed(2),
       c.loyaltyPoints,
-      c.joinedDate,
+      `"${c.joinedDate}"`,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    // CSV format with UTF-8 BOM so Excel opens it directly in clean tabular format
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `Tallios_App_Customers_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    triggerToast('Customer roster exported as CSV!');
+    URL.revokeObjectURL(url);
+    triggerToast('Customer roster exported to Excel!');
   };
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
@@ -225,12 +228,13 @@ export const UsersPage: React.FC<UsersPageProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {!isStaff && (
             <button
-              onClick={handleExportCSV}
+              onClick={handleExportExcel}
               className="rrm-btn-outline"
               style={{ borderRadius: '0px', padding: '7px 14px', fontSize: '0.8125rem' }}
+              title="Export as Excel / CSV spreadsheet"
             >
               <Download size={14} />
-              <span>Export CSV</span>
+              <span>Export Excel</span>
             </button>
           )}
 
