@@ -39,6 +39,41 @@ const actions = ['Start prep', 'Mark ready', 'Complete'];
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const locationName = (id: LocationId) => LOCATIONS.find(location => location.id === id)?.name ?? id;
 
+const drinkOptions = {
+  size: [
+    { id: 'regular', label: 'Regular (12 oz)', cents: 0 },
+    { id: 'large', label: 'Large (16 oz)', cents: 85 },
+  ],
+  milk: [
+    { id: 'whole', label: 'Whole Milk', cents: 0 },
+    { id: 'oat', label: 'Oat Milk', cents: 100 },
+    { id: 'almond', label: 'Almond Milk', cents: 100 },
+    { id: 'soy', label: 'Soy Milk', cents: 100 },
+  ],
+};
+
+function isCustomizableDrink(product: InventoryItem) {
+  return product.unit === 'units' && /\b(latte|cappuccino|flat white|mocha|macchiato|chai|matcha)\b/i.test(product.name);
+}
+
+function customizationLabels(item: KioskOrder['items'][number]) {
+  const labels = new Set(item.options?.split(',').map(value => value.trim()).filter(Boolean));
+  for (const group of item.selectedCustomizations ?? []) {
+    const known = group.customizationId === 'size' || group.customizationId === 'milk'
+      ? drinkOptions[group.customizationId] : [];
+    for (const id of group.optionIds) {
+      const label = known.find(option => option.id === id)?.label ?? id.replace(/[-_]/g, ' ');
+      if (![...labels].some(value => value.toLowerCase() === label.toLowerCase())) labels.add(label);
+    }
+  }
+  if (item.specialRequestNote) labels.add(`Note: ${item.specialRequestNote}`);
+  if (item.customizationSurcharge) labels.add(`+${money.format(item.customizationSurcharge)} per item`);
+  return [...labels];
+}
+
+function newOrderLine(key: number) {
+  return { key, itemId: '', quantity: '1', size: 'regular', milk: 'whole', note: '' };
+}
 function formatOrderDateTime(createdAt: string) {
   const defaultDate = '11/25/2026';
   const defaultTime = '11:45 AM';
@@ -111,7 +146,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
   const sheetRef = useRef<HTMLDialogElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [cancelOrder, setCancelOrder] = useState<KioskOrder>();
-  const [items, setItems] = useState([{ key: 0, itemId: '', quantity: '1' }]);
+  const [items, setItems] = useState([newOrderLine(0)]);
   const [nextItem, setNextItem] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<'Card' | 'Cash' | 'Apple Pay' | 'Google Pay' | ''>('');
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid' | ''>('');
@@ -131,18 +166,34 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
         : Number((Math.max(item.costPerUnit * 1.5, 3.50)).toFixed(2)),
     }));
   
-  const draft = items.map(line => ({
-    ...line,
-    product: offerings.find(item => item.id === line.itemId),
-    count: Number(line.quantity),
-  }));
-  
-  const orderItems = draft.flatMap(({ product, count }) =>
-    product && Number.isInteger(count) && count >= 1 && count <= 999
-      ? [{ inventoryItemId: product.id, name: product.name, quantity: count, price: product.sellingPrice }]
-      : [],
-  );
-  
+  const draft = items.map(line => {
+    const product = offerings.find(item => item.id === line.itemId);
+    const customizable = product && isCustomizableDrink(product);
+    const size = drinkOptions.size.find(option => option.id === line.size) ?? drinkOptions.size[0];
+    const milk = drinkOptions.milk.find(option => option.id === line.milk) ?? drinkOptions.milk[0];
+    const surcharge = customizable ? size.cents + milk.cents : 0;
+    const price = product ? (Math.round(product.sellingPrice * 100) + surcharge) / 100 : 0;
+    return { ...line, product, customizable, count: Number(line.quantity), surcharge, price, sizeOption: size, milkOption: milk };
+  });
+
+  const orderItems: KioskOrder['items'] = draft.flatMap(line => {
+    const { product, count, price, customizable, surcharge, sizeOption, milkOption } = line;
+    if (!product || !Number.isInteger(count) || count < 1 || count > 99) return [];
+    return [{
+      inventoryItemId: product.id,
+      name: product.name,
+      quantity: count,
+      price,
+      ...(customizable ? {
+        selectedCustomizations: [
+          { customizationId: 'size', optionIds: [sizeOption.id] },
+          { customizationId: 'milk', optionIds: [milkOption.id] },
+        ],
+        customizationSurcharge: surcharge / 100,
+      } : {}),
+      specialRequestNote: line.note.trim() || undefined,
+    }];
+  });
   const total = orderItems.reduce((sum, item) => sum + item.quantity * Math.round(item.price * 100), 0) / 100;
   const canSave = Boolean(fulfillmentLocation) && orderItems.length > 0 && orderItems.length === items.filter(i => i.itemId).length && Boolean(paymentMethod) && Boolean(paymentStatus);
   const scoped = orders.filter(order => scope === 'all' || order.locationId === scope);
@@ -211,7 +262,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
     setCounterLocation('');
     setPaymentMethod('');
     setPaymentStatus('');
-    setItems([{ key: 0, itemId: '', quantity: '1' }]);
+    setItems([newOrderLine(0)]);
     setNextItem(1);
     sheetRef.current?.showModal();
   }
@@ -220,33 +271,11 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
     setEditingOrder(order);
     setEditingItems(order.items.map(item => ({ ...item })));
   }
-  function handleSelectProduct(key: number, newItemId: string) {
-    if (!newItemId) {
-      setItems(prev => prev.map(line => line.key === key ? { ...line, itemId: '' } : line));
-      return;
-    }
-
-    setItems(prev => {
-      const existingIndex = prev.findIndex(line => line.key !== key && line.itemId === newItemId);
-      if (existingIndex !== -1) {
-        // Same item already exists elsewhere in the list!
-        // Automatically merge: increase existing item quantity and remove this extra duplicate row
-        const currentQty = Number(prev[existingIndex].quantity) || 1;
-        const addQty = Number(prev.find(line => line.key === key)?.quantity) || 1;
-        const mergedQty = String(currentQty + addQty);
-        
-        const updated = prev
-          .map((line, idx) => idx === existingIndex ? { ...line, quantity: mergedQty } : line)
-          .filter(line => line.key !== key);
-        
-        return updated.length > 0 ? updated : [{ key: 0, itemId: newItemId, quantity: '1' }];
-      }
-
-      // Fresh selection on this line
-      return prev.map(line => line.key === key ? { ...line, itemId: newItemId } : line);
-    });
+  function handleSelectProduct(key: number, itemId: string) {
+    setItems(previous => previous.map(line => line.key === key
+      ? { ...newOrderLine(key), itemId, quantity: line.quantity }
+      : line));
   }
-
   const getStatusBadgeClass = (status: KioskOrder['orderStatus']) => {
     switch (status) {
       case 'Incoming': return 'orders-badge-incoming';
@@ -538,7 +567,12 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                     return (
                       <tr 
                         key={order.id} 
-                        onClick={() => setSelectedOrderDetails(order)}
+                        className="orders-clickable-row"
+                        onClick={event => {
+                          if (event.target instanceof Element && event.target.closest('[data-order-actions]')) return;
+                          setOpenDropdownId(null);
+                          setSelectedOrderDetails(order);
+                        }}
                         style={{ cursor: 'pointer' }}
                         title="Click to view order details"
                       >
@@ -687,6 +721,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
 
                         {/* 10. Actions (3-dot Dropdown Menu) */}
                         <td 
+                          data-order-actions
                           style={{ textAlign: 'center', position: 'relative', width: '50px' }}
                           onClick={e => e.stopPropagation()}
                         >
@@ -1007,7 +1042,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                       {order.items.map((item, idx) => (
                         <li key={idx}>
                           {item.quantity}× {item.name}
-                          {item.options && <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)' }}> ({item.options})</span>}
+                          {customizationLabels(item).length > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)' }}> ({customizationLabels(item).join(' · ')})</span>}
                         </li>
                       ))}
                     </ul>
@@ -1150,7 +1185,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                     value={counterLocation}
                     onChange={e => {
                       setCounterLocation(e.target.value as LocationId | '');
-                      setItems(prev => prev.map(line => ({ ...line, itemId: '' })));
+                      setItems(prev => prev.map(line => ({ ...newOrderLine(line.key), quantity: line.quantity })));
                     }}
                     required
                   >
@@ -1189,7 +1224,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                   <button
                     type="button"
                     onClick={() => {
-                      setItems([...items, { key: nextItem, itemId: '', quantity: '1' }]);
+                      setItems([...items, newOrderLine(nextItem)]);
                       setNextItem(nextItem + 1);
                     }}
                     style={{
@@ -1211,21 +1246,14 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                 )}
               </div>
 
-              {!fulfillmentLocation && (
-                <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748B', backgroundColor: '#F8FAFC', border: '1px dashed var(--border)', fontSize: '0.8125rem' }}>
-                  Please select a fulfillment location above to view live in-stock inventory items.
-                </div>
-              )}
-
               {fulfillmentLocation && !offerings.length && (
                 <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', fontSize: '0.8125rem' }}>
                   No in-stock sellable items found at this location. Please check Inventory.
                 </div>
               )}
 
-              {offerings.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {draft.map(({ key, product, quantity }, idx) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {draft.map(({ key, product, quantity, customizable, size, milk, note, price }, idx) => (
                     <div className="orders-sheet-item" key={key}>
                       <div className="orders-sheet-item-row">
                         <div>
@@ -1234,11 +1262,12 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                           </span>
                           <select
                             value={product?.id ?? ''}
+                            disabled={!offerings.length}
                             required
                             onChange={e => handleSelectProduct(key, e.target.value)}
                             style={{ width: '100%' }}
                           >
-                            <option value="">Select coffee or pastry</option>
+                            <option value="">{fulfillmentLocation ? 'Select coffee or pastry' : 'Select a location first'}</option>
                             {offerings.map(item => (
                               <option key={item.id} value={item.id}>
                                 {item.name} (${item.sellingPrice?.toFixed(2)})
@@ -1256,6 +1285,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                             min="1"
                             max="99"
                             value={quantity}
+                            disabled={!product}
                             required
                             onChange={e => {
                               const value = e.target.value;
@@ -1268,7 +1298,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
 
                         <div className="orders-item-price">
                           <span>Subtotal</span>
-                          <strong>{product ? money.format(product.sellingPrice * (Number(quantity) || 1)) : '$0.00'}</strong>
+                          <strong>{product ? money.format(price * (Number(quantity) || 1)) : '$0.00'}</strong>
                         </div>
 
                         <div>
@@ -1298,10 +1328,32 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                           )}
                         </div>
                       </div>
+                      <div className="orders-item-customizations">
+                        {(['size', 'milk'] as const).map(group => (
+                          <label key={group}>
+                            {group === 'size' ? 'Cup size' : 'Choice of milk'}
+                            <select required disabled={!customizable} value={customizable ? (group === 'size' ? size : milk) : ''} onChange={event => {
+                              const value = event.target.value;
+                              setItems(previous => previous.map(line => line.key === key ? { ...line, [group]: value } : line));
+                            }}>
+                              {!customizable && <option value="">{product ? 'Available for prepared drinks' : 'Select a prepared drink first'}</option>}
+                              {drinkOptions[group].map(option => <option key={option.id} value={option.id}>
+                                {option.label}{option.cents > 0 ? ` (+${money.format(option.cents / 100)})` : ''}
+                              </option>)}
+                            </select>
+                          </label>
+                        ))}
+                        <label className="orders-item-request">
+                          Special request note (optional)
+                          <textarea rows={2} maxLength={300} disabled={!product} value={note} placeholder="e.g. Extra hot or light ice" onChange={event => {
+                            const value = event.target.value;
+                            setItems(previous => previous.map(line => line.key === key ? { ...line, note: value } : line));
+                          }} />
+                        </label>
+                      </div>
                     </div>
                   ))}
-                </div>
-              )}
+              </div>
             </section>
 
             {/* 2. PAYMENT SECTION (LAST, RIGHT BEFORE TOTAL & CONFIRM) */}
@@ -1539,6 +1591,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
       {/* VIEW ORDER DETAILS SLIDING SHEET / DRAWER (IDENTICAL COMPONENT TO NEW COUNTER ORDER) */}
       {selectedOrderDetails && (
         <div 
+          className="orders-drawer-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
@@ -1716,7 +1769,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                           <strong style={{ fontSize: '0.875rem', color: '#0F172A', display: 'block' }}>
                             {it.name}
                           </strong>
-                          {it.options && (
+                          {customizationLabels(it).length > 0 && (
                             <span style={{
                               display: 'inline-block',
                               marginTop: '4px',
@@ -1728,7 +1781,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                               fontWeight: 500,
                               fontStyle: 'italic'
                             }}>
-                              • {it.options}
+                              • {customizationLabels(it).join(' · ')}
                             </span>
                           )}
                         </div>
@@ -1817,6 +1870,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
       {/* EDIT ORDER SLIDING SHEET / DRAWER */}
       {editingOrder && (
         <div 
+          className="orders-drawer-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
@@ -2017,7 +2071,11 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                                     ...item,
                                     inventoryItemId: selected.id,
                                     name: selected.name,
-                                    price: selected.price
+                                    price: selected.price,
+                                    options: undefined,
+                                    selectedCustomizations: undefined,
+                                    customizationSurcharge: undefined,
+                                    specialRequestNote: undefined
                                   } : item));
                                 }
                               }}

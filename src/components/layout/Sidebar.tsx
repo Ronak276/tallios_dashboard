@@ -1,8 +1,4 @@
-import { useState } from 'react';
-import { 
-  LayoutGrid, Users, ClipboardList, Cubes, MapPin, 
-  MoreVertical, LogOut 
-} from '../icons/Icons';
+import { LayoutGrid, Users, ClipboardList, Cubes, MapPin, LogOut } from '../icons/Icons';
 
 export type TabType = 
   | 'dashboard' 
@@ -34,8 +30,6 @@ export function Sidebar({
   currentUser,
   onLogout
 }: SidebarProps) {
-  const [showUserMenu, setShowUserMenu] = useState(false);
-
   return (
     <aside className={`app-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -162,115 +156,24 @@ export function Sidebar({
         </nav>
       </div>
 
-      {/* User Footer Profile & Dropdown */}
-      <div style={{
-        padding: '0.75rem 0.85rem',
-        borderTop: '1px solid var(--sidebar-border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'relative'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '4px',
-            backgroundColor: darkMode 
-              ? (currentUser?.role === 'Staff' ? 'rgba(2, 132, 199, 0.2)' : '#1E293B')
-              : (currentUser?.role === 'Staff' ? '#e0f2fe' : '#fff0eb'),
-            color: darkMode 
-              ? (currentUser?.role === 'Staff' ? '#38bdf8' : '#60A5FA')
-              : (currentUser?.role === 'Staff' ? '#0284c7' : '#1C2C60'),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: '0.75rem',
-            border: darkMode 
-              ? (currentUser?.role === 'Staff' ? '1px solid #0369a1' : '1px solid #334155')
-              : (currentUser?.role === 'Staff' ? '1px solid #bae6fd' : '1px solid #ffd8cc')
-          }}>
-            {currentUser ? currentUser.name.slice(0, 2).toUpperCase() : 'TO'}
-          </div>
+      <footer className="sidebar-account">
+        <div className="sidebar-account-profile">
+          <span className="sidebar-account-avatar" aria-hidden="true">
+            {currentUser?.name?.slice(0, 2).toUpperCase() || 'TO'}
+          </span>
           {!sidebarCollapsed && (
-            <div className="sidebar-user-details" style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)' }}>{currentUser?.name || "Tallio's Ops"}</span>
-                <span style={{
-                  fontSize: '0.5625rem',
-                  fontWeight: 700,
-                  padding: '1px 4px',
-                  backgroundColor: currentUser?.role === 'Staff' 
-                    ? (darkMode ? 'rgba(2, 132, 199, 0.2)' : '#e0f2fe')
-                    : (darkMode ? 'rgba(59, 130, 246, 0.2)' : '#fff0eb'),
-                  color: currentUser?.role === 'Staff' 
-                    ? (darkMode ? '#38bdf8' : '#0284c7')
-                    : (darkMode ? '#60A5FA' : '#1C2C60'),
-                  border: currentUser?.role === 'Staff' 
-                    ? (darkMode ? '1px solid #0369a1' : '1px solid #bae6fd')
-                    : (darkMode ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid #ffd8cc'),
-                  textTransform: 'uppercase'
-                }}>{currentUser?.role || 'SUPER ADMIN'}</span>
-              </div>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>{currentUser?.email || 'admin@tallioscoffee.com'}</span>
+            <div className="sidebar-user-details">
+              <strong title={currentUser?.name}>{currentUser?.name || "Tallio's Ops"}</strong>
+              <span>{currentUser?.role || 'Super Admin'}</span>
+              {currentUser?.email && <span title={currentUser.email}>{currentUser.email}</span>}
             </div>
           )}
         </div>
-        {!sidebarCollapsed && (
-          <div style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="rrm-btn-outline" 
-              style={{ border: 'none', padding: '4px', color: 'var(--muted-foreground)' }}
-              title="Account Options"
-            >
-              <MoreVertical size={16} />
-            </button>
-
-            {/* User Dropdown Menu */}
-            {showUserMenu && (
-              <div 
-                style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  right: 0,
-                  marginBottom: '8px',
-                  width: '180px',
-                  backgroundColor: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                  zIndex: 1000,
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}
-              >
-                <button
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    onLogout();
-                  }}
-                  style={{
-                    padding: '8px 12px',
-                    fontSize: '0.75rem',
-                    textAlign: 'left',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#ef4444',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <LogOut size={14} />
-                  Log Out
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+        <button type="button" className="sidebar-sign-out" onClick={onLogout} aria-label="Sign out" title="Sign out">
+          <LogOut size={17} />
+          {!sidebarCollapsed && <span>Sign out</span>}
+        </button>
+      </footer>
     </aside>
   );
 }

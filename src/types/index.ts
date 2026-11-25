@@ -48,6 +48,9 @@ export interface KioskOrder {
     name: string;
     quantity: number;
     options?: string;
+    selectedCustomizations?: { customizationId: string; optionIds: string[] }[];
+    customizationSurcharge?: number;
+    specialRequestNote?: string;
     price: number;
   }[];
   totalAmount: number;
