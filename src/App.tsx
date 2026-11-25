@@ -4,8 +4,8 @@ import type {
   LocationId, LoyaltyMember, PurchaseOrder, PaymentTransaction, CustomerUser 
 } from './types';
 import { 
-  INITIAL_INVENTORY, INITIAL_ORDERS, 
-  RECENT_LOGS, LOYALTY_MEMBERS, INITIAL_PURCHASE_ORDERS, INITIAL_PAYMENTS, INITIAL_CUSTOMERS 
+  INITIAL_INVENTORY, 
+  RECENT_LOGS, LOYALTY_MEMBERS, INITIAL_PURCHASE_ORDERS, INITIAL_PAYMENTS 
 } from './data/mockData';
 import { supabase } from './lib/supabase';
 
@@ -69,7 +69,7 @@ export function App() {
     const saved = localStorage.getItem('tallios_inventory');
     return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
   });
-  const [orders, setOrders] = useState<KioskOrder[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<KioskOrder[]>([]);
   const [logs, setLogs] = useState<StockAdjustmentLog[]>(() => {
     const saved = localStorage.getItem('tallios_logs');
     return saved ? JSON.parse(saved) : RECENT_LOGS;
@@ -86,7 +86,7 @@ export function App() {
     const saved = localStorage.getItem('tallios_payments');
     return saved ? JSON.parse(saved) : INITIAL_PAYMENTS;
   });
-  const [customers, setCustomers] = useState<CustomerUser[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<CustomerUser[]>([]);
 
   // Persistence for inventory & logs
   useEffect(() => {
@@ -118,7 +118,7 @@ export function App() {
     const fetchCustomers = async () => {
       try {
         const { data, error } = await supabase.from('customers').select('*').order('created_at', { ascending: false });
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           setCustomers(data.map(mapCustomer));
         }
       } catch (err) {
@@ -169,7 +169,7 @@ export function App() {
     const fetchOrders = async () => {
       try {
         const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           setOrders(data.map(mapOrder));
         }
       } catch (err) {
@@ -323,11 +323,22 @@ export function App() {
         <main className={activeTab === 'orders' ? 'app-content orders-content' : 'app-content'}>
           {activeTab === 'dashboard' && (
             <OverviewPage
+              orders={orders}
+              inventory={inventory}
               selectedLocation={selectedLocation}
               onLocationChange={setSelectedLocation}
               onNavigateToOrders={() => setActiveTab('orders')}
               onNavigateToInventory={() => setActiveTab('inventory')}
               onNewOrder={() => setShowAddModal(true)}
+              onStatusChange={async (order, newStatus) => {
+                setOrders(prev => prev.map(o => o.id === order.id ? { ...o, orderStatus: newStatus } : o));
+                try {
+                  await supabase.from('orders').update({ order_status: newStatus }).eq('id', order.id);
+                  triggerToast(`Order ${order.orderNumber} updated to ${newStatus}`);
+                } catch (e) {
+                  console.warn('Order status sync error:', e);
+                }
+              }}
               userRole={currentUser?.role}
               userLocation={currentUser?.assignedLocation}
             />

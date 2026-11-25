@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from '../icons/Icons';
-import { supabase, SUPER_ADMIN_CREDENTIALS } from '../../lib/supabase';
+import { supabase, SUPER_ADMIN_CREDENTIALS, ALL_STAFF_ACCOUNTS } from '../../lib/supabase';
 
 interface AuthPageProps {
   onLoginSuccess: (user: { name: string; email: string; role: string; assignedLocation?: string }) => void;
@@ -38,11 +38,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLoginSuccess, darkMode = f
         const isStaffUser = userEmail.toLowerCase() !== SUPER_ADMIN_CREDENTIALS.email.toLowerCase();
         const detectedRole = isStaffUser ? 'Staff' : 'Super Admin';
         
+        const matchingStaff = ALL_STAFF_ACCOUNTS.find(s => s.email.toLowerCase() === userEmail.toLowerCase());
+        const staffLocation = matchingStaff ? matchingStaff.location : (metadata.assignedLocation || 'Bayview Café');
+        
         onLoginSuccess({
-          name: metadata.name || (isStaffUser ? 'Café Staff' : SUPER_ADMIN_CREDENTIALS.name),
+          name: metadata.name || (matchingStaff ? matchingStaff.name : (isStaffUser ? 'Café Staff' : SUPER_ADMIN_CREDENTIALS.name)),
           email: userEmail,
           role: detectedRole,
-          assignedLocation: metadata.assignedLocation || (isStaffUser ? 'Bayview Café' : 'All Locations'),
+          assignedLocation: isStaffUser ? staffLocation : 'All Locations',
         });
       }
     } catch (err: any) {

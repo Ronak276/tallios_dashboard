@@ -77,11 +77,22 @@ interface Props {
   orders: KioskOrder[];
   inventory: InventoryItem[];
   isAdmin: boolean;
-  assignedLocation?: LocationId;
+  assignedLocation?: string;
   onUpdateOrder?: (order: KioskOrder) => void;
   onDeleteOrder?: (orderId: string) => void;
   onStatus: (order: KioskOrder, status: KioskOrder['orderStatus']) => void;
   onCreate: (order: KioskOrder) => void;
+}
+
+// Helper to convert any location display string or ID into a canonical LocationId
+function resolveLocationId(loc?: string): LocationId | 'all' {
+  if (!loc || loc === 'all' || loc === 'All Locations') return 'all';
+  const l = loc.toLowerCase();
+  if (l === 'loc-main' || l.includes('bayview') || l.includes('main street') || l.includes('roastery')) return 'loc-main';
+  if (l === 'loc-truck-1' || l.includes('truck #1') || l.includes('truck 1') || l.includes('downtown')) return 'loc-truck-1';
+  if (l === 'loc-truck-2' || l.includes('truck #2') || l.includes('truck 2') || l.includes('farmers') || l.includes('marina')) return 'loc-truck-2';
+  if (l === 'loc-kiosk-tech' || l.includes('kiosk') || l.includes('tech park')) return 'loc-kiosk-tech';
+  return 'all';
 }
 
 export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpdateOrder, onDeleteOrder, onStatus, onCreate }: Props) {
@@ -106,8 +117,9 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
   const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid' | ''>('');
   const [counterLocation, setCounterLocation] = useState<LocationId | ''>('');
   
-  const scope = isAdmin ? location : assignedLocation;
-  const fulfillmentLocation = isAdmin ? counterLocation : assignedLocation;
+  const resolvedAssignedLocationId = resolveLocationId(assignedLocation);
+  const scope = isAdmin ? location : resolvedAssignedLocationId;
+  const fulfillmentLocation = isAdmin ? counterLocation : (resolvedAssignedLocationId === 'all' ? 'loc-main' : resolvedAssignedLocationId);
   
   // Available offerings: items at this location that are in stock with either a selling price or derived sell price
   const offerings = inventory
@@ -304,7 +316,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
               color: 'var(--foreground)'
             }}>
               <MapPin size={14} style={{ color: '#10B981' }} />
-              <span>{assignedLocation ? locationName(assignedLocation) : 'Bayview Café'}</span>
+              <span>{resolvedAssignedLocationId !== 'all' ? locationName(resolvedAssignedLocationId) : (assignedLocation || 'Bayview Café (Roastery HQ)')}</span>
             </div>
           )}
 
@@ -413,10 +425,31 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
 
         {/* Right side controls */}
         <div className="orders-filters-right">
+          {/* Location Filter (Admin Only) */}
+          {isAdmin && (
+            <select
+              value={location}
+              onChange={e => {
+                setLocation(e.target.value as LocationId | 'all');
+                setCurrentPage(1);
+              }}
+              className="orders-select-filter"
+              title="Filter by Location"
+            >
+              <option value="all">All Locations</option>
+              {LOCATIONS.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
+          )}
+
           {/* Stage / Status Filter */}
           <select
             value={stage}
-            onChange={e => setStage(e.target.value as any)}
+            onChange={e => {
+              setStage(e.target.value as any);
+              setCurrentPage(1);
+            }}
             className="orders-select-filter"
           >
             <option value="all">All Order Statuses</option>
@@ -428,7 +461,10 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
           {/* Sales Channel Filter */}
           <select
             value={channel}
-            onChange={e => setChannel(e.target.value)}
+            onChange={e => {
+              setChannel(e.target.value);
+              setCurrentPage(1);
+            }}
             className="orders-select-filter"
           >
             <option value="all">All Channels</option>
@@ -1141,7 +1177,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                     <label>Fulfillment Location</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 600, color: '#1C2C60', padding: '8px 12px', background: '#F1F5F9', border: '1px solid var(--border)' }}>
                       <MapPin size={15} style={{ color: '#10B981' }} />
-                      <span>{locationName(assignedLocation)}</span>
+                      <span>{resolvedAssignedLocationId !== 'all' ? locationName(resolvedAssignedLocationId) : (assignedLocation || 'Bayview Café (Roastery HQ)')}</span>
                     </div>
                   </div>
                 )

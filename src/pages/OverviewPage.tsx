@@ -1,187 +1,88 @@
 import React from 'react';
 import { 
   ClipboardList, CheckCircle, AlertTriangle, Wallet, 
-  ArrowRight, ArrowDownLeft, Coffee, Plus, MapPin
+  ArrowRight, Plus, MapPin, Coffee
 } from '../components/icons/Icons';
-import type { LocationId } from '../types';
+import type { LocationId, KioskOrder, InventoryItem } from '../types';
 
 interface OverviewPageProps {
+  orders?: KioskOrder[];
+  inventory?: InventoryItem[];
   onNavigateToOrders?: () => void;
   onNavigateToInventory?: () => void;
   onNewOrder?: () => void;
   selectedLocation: LocationId | 'all';
   onLocationChange: (loc: LocationId | 'all') => void;
+  onStatusChange?: (order: KioskOrder, status: KioskOrder['orderStatus']) => void;
   userRole?: string;
   userLocation?: string;
 }
 
-interface OrderItem {
-  id: string;
-  orderNumber: string;
-  time: string;
-  customerName: string;
-  type: string;
-  details: string;
-  status: 'New' | 'Preparing' | 'Ready' | 'Completed';
-  total: number;
-  images: string[];
-}
-
-interface StockAlert {
-  id: string;
-  name: string;
-  category: string;
-  quantity: string;
+function resolveOverviewLocationId(loc?: string): LocationId | 'all' {
+  if (!loc || loc === 'all' || loc === 'All Locations') return 'all';
+  const l = loc.toLowerCase();
+  if (l === 'loc-main' || l.includes('bayview') || l.includes('main street') || l.includes('roastery')) return 'loc-main';
+  if (l === 'loc-truck-1' || l.includes('truck #1') || l.includes('truck 1') || l.includes('downtown')) return 'loc-truck-1';
+  if (l === 'loc-truck-2' || l.includes('truck #2') || l.includes('truck 2') || l.includes('farmers') || l.includes('marina')) return 'loc-truck-2';
+  if (l === 'loc-kiosk-tech' || l.includes('kiosk') || l.includes('tech park')) return 'loc-kiosk-tech';
+  return 'all';
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
+  orders = [],
+  inventory = [],
   onNavigateToOrders,
   onNavigateToInventory,
   onNewOrder,
   selectedLocation,
   onLocationChange,
+  onStatusChange,
   userRole = 'Super Admin',
   userLocation,
 }) => {
   const isStaff = userRole === 'Staff';
 
+  // Resolved Location ID for Staff
+  const resolvedStaffLocId = resolveOverviewLocationId(userLocation);
+  const activeLocId = isStaff
+    ? (resolvedStaffLocId === 'all' ? 'loc-main' : resolvedStaffLocId)
+    : selectedLocation;
+
   // Active Location Name display
   const activeLocationDisplayName = isStaff
     ? (userLocation || 'Bayview Café').split('(')[0].trim()
-    : (selectedLocation === 'loc-truck-1' ? 'Downtown Food Truck #1' :
-       selectedLocation === 'loc-truck-2' ? 'Harbor Marina Truck #2' :
+    : (selectedLocation === 'loc-truck-1' ? 'Mobile Food Truck #1' :
+       selectedLocation === 'loc-truck-2' ? 'Mobile Food Truck #2' :
        selectedLocation === 'loc-kiosk-tech' ? 'Tech Park Express Kiosk' :
        'Bayview Café (Roastery HQ)');
 
-  // Location ID mapping helper
-  const activeLocId = isStaff
-    ? (userLocation?.toLowerCase().includes('truck1') || userLocation?.toLowerCase().includes('truck #1') ? 'loc-truck-1' :
-       userLocation?.toLowerCase().includes('truck2') || userLocation?.toLowerCase().includes('truck #2') ? 'loc-truck-2' :
-       userLocation?.toLowerCase().includes('kiosk') ? 'loc-kiosk-tech' : 'loc-main')
-    : selectedLocation;
+  // Scoped Data by Location (100% Live DB Sync)
+  const scopedOrders = isStaff
+    ? orders.filter(o => o.locationId === activeLocId)
+    : (selectedLocation === 'all' ? orders : orders.filter(o => o.locationId === selectedLocation));
 
-  // Mock orders with location tags
-  const [ordersList, setOrdersList] = React.useState<(OrderItem & { locationId: LocationId })[]>([
-    {
-      id: 'ord-1039',
-      orderNumber: '#1039',
-      time: '10:48 AM',
-      customerName: 'Nadia James',
-      type: 'Take away',
-      details: '1 × Paramaribo Spice Latte · 1 × Bojo',
-      status: 'New',
-      total: 12.00,
-      images: ['/item_latte.jpg', '/item_pastry.jpg'],
-      locationId: 'loc-main',
-    },
-    {
-      id: 'ord-1038',
-      orderNumber: '#1038',
-      time: '10:45 AM',
-      customerName: 'Darius Chen',
-      type: 'Dine in',
-      details: '1 × Cappuccino · 1 × Avocado Toast',
-      status: 'Preparing',
-      total: 16.00,
-      images: ['/item_coffee.jpg', '/item_toast.jpg'],
-      locationId: 'loc-kiosk-tech',
-    },
-    {
-      id: 'ord-1037',
-      orderNumber: '#1037',
-      time: '10:38 AM',
-      customerName: 'Marisol Vega',
-      type: 'Take away',
-      details: '2 × Paramaribo Cold Brew',
-      status: 'Ready',
-      total: 14.00,
-      images: ['/item_coldbrew.jpg'],
-      locationId: 'loc-truck-1',
-    },
-    {
-      id: 'ord-1036',
-      orderNumber: '#1036',
-      time: '10:31 AM',
-      customerName: 'Evan Brooks',
-      type: 'Take away',
-      details: '1 × Ginger Brew',
-      status: 'Completed',
-      total: 6.00,
-      images: ['/item_ginger.jpg'],
-      locationId: 'loc-main',
-    },
-    {
-      id: 'ord-1035',
-      orderNumber: '#1035',
-      time: '10:20 AM',
-      customerName: 'Chloe Kensington',
-      type: 'Take away',
-      details: '1 × Matcha Latte',
-      status: 'Ready',
-      total: 7.50,
-      images: ['/item_latte.jpg'],
-      locationId: 'loc-truck-2',
-    },
-  ]);
+  const scopedInventory = isStaff
+    ? inventory.filter(i => i.locationId === activeLocId)
+    : (selectedLocation === 'all' ? inventory : inventory.filter(i => i.locationId === selectedLocation));
 
-  const stockAlertsAll: (StockAlert & { locationId: LocationId })[] = [
-    {
-      id: 'stock-1',
-      name: 'Oat milk',
-      category: 'Dairy & alternatives',
-      quantity: '4 cartons',
-      locationId: 'loc-main',
-    },
-    {
-      id: 'stock-2',
-      name: 'Butter croissants',
-      category: 'Bakery',
-      quantity: '6 pcs',
-      locationId: 'loc-truck-1',
-    },
-    {
-      id: 'stock-3',
-      name: 'Cold Brew Kegs',
-      category: 'Beans & Roasts',
-      quantity: '2 kegs',
-      locationId: 'loc-truck-2',
-    },
-    {
-      id: 'stock-4',
-      name: '12oz Paper Cups',
-      category: 'Packaging',
-      quantity: '50 pcs',
-      locationId: 'loc-kiosk-tech',
-    },
-  ];
+  // Low Stock Items derived directly from real live inventory
+  const lowStockAlerts = scopedInventory.filter(
+    item => item.status === 'Low Stock' || item.status === 'Critical' || item.stock <= item.minThreshold
+  );
 
-  // Scoped Data by Location
-  const scopedOrdersList = isStaff
-    ? ordersList.filter(o => o.locationId === activeLocId)
-    : (selectedLocation === 'all' ? ordersList : ordersList.filter(o => o.locationId === selectedLocation));
+  const openOrdersCount = scopedOrders.filter(o => o.orderStatus !== 'Completed' && o.orderStatus !== 'Cancelled').length;
+  const readyForPickupCount = scopedOrders.filter(o => o.orderStatus === 'Ready for Pickup').length;
+  const lowStockCount = lowStockAlerts.length;
+  const completedSalesTotal = scopedOrders
+    .filter(o => o.orderStatus === 'Completed' && o.stripeStatus === 'Paid')
+    .reduce((sum, o) => sum + o.totalAmount, 0);
 
-  const stockAlerts = isStaff
-    ? stockAlertsAll.filter(s => s.locationId === activeLocId)
-    : (selectedLocation === 'all' ? stockAlertsAll : stockAlertsAll.filter(s => s.locationId === selectedLocation));
-
-  const handleAction = (orderId: string, currentStatus: OrderItem['status']) => {
-    setOrdersList((prev) =>
-      prev.map((o) => {
-        if (o.id !== orderId) return o;
-        if (currentStatus === 'New') return { ...o, status: 'Preparing' };
-        if (currentStatus === 'Preparing') return { ...o, status: 'Ready' };
-        if (currentStatus === 'Ready') return { ...o, status: 'Completed' };
-        return o;
-      })
-    );
+  const handleNextStatus = (order: KioskOrder) => {
+    if (!onStatusChange) return;
+    if (order.orderStatus === 'Incoming') onStatusChange(order, 'Brewing / Prep');
+    else if (order.orderStatus === 'Brewing / Prep') onStatusChange(order, 'Ready for Pickup');
+    else if (order.orderStatus === 'Ready for Pickup') onStatusChange(order, 'Completed');
   };
-
-  const openOrdersCount = scopedOrdersList.filter(o => o.status !== 'Completed').length;
-  const readyForPickupCount = scopedOrdersList.filter(o => o.status === 'Ready').length;
-  const lowStockCount = stockAlerts.length;
-  const completedSalesTotal = scopedOrdersList
-    .filter(o => o.status === 'Completed')
-    .reduce((sum, o) => sum + o.total, 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%' }}>
@@ -243,9 +144,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                   paddingRight: '2px'
                 }}
               >
-                <option value="loc-main">Bayview Café</option>
-                <option value="loc-truck-1">Downtown Food Truck #1</option>
-                <option value="loc-truck-2">Harbor Marina Truck #2</option>
+                <option value="loc-main">Bayview Café (Roastery HQ)</option>
+                <option value="loc-truck-1">Mobile Food Truck #1</option>
+                <option value="loc-truck-2">Mobile Food Truck #2</option>
                 <option value="loc-kiosk-tech">Tech Park Express Kiosk</option>
               </select>
             </div>
@@ -491,102 +392,110 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {scopedOrdersList.map((order) => {
-                  let badgeClass = 'rrm-badge';
-                  if (order.status === 'New') {
-                    badgeClass = 'rrm-badge rrm-badge-coffee';
-                  } else if (order.status === 'Preparing') {
-                    badgeClass = 'rrm-badge rrm-badge-warning';
-                  } else if (order.status === 'Ready') {
-                    badgeClass = 'rrm-badge rrm-badge-valid';
-                  } else {
-                    badgeClass = 'rrm-badge';
-                  }
+                {scopedOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--muted-foreground)' }}>
+                      No active orders found at {activeLocationDisplayName}.
+                    </td>
+                  </tr>
+                ) : (
+                  scopedOrders.slice(0, 5).map((order) => {
+                    let badgeClass = 'rrm-badge';
+                    let displayStatus = 'Incoming';
+                    let nextActionLabel = 'Start';
+                    
+                    if (order.orderStatus === 'Incoming') {
+                      badgeClass = 'rrm-badge rrm-badge-coffee';
+                      displayStatus = 'New';
+                      nextActionLabel = 'Start';
+                    } else if (order.orderStatus === 'Brewing / Prep') {
+                      badgeClass = 'rrm-badge rrm-badge-warning';
+                      displayStatus = 'Preparing';
+                      nextActionLabel = 'Mark ready';
+                    } else if (order.orderStatus === 'Ready for Pickup') {
+                      badgeClass = 'rrm-badge rrm-badge-valid';
+                      displayStatus = 'Ready';
+                      nextActionLabel = 'Complete';
+                    } else if (order.orderStatus === 'Completed') {
+                      badgeClass = 'rrm-badge';
+                      displayStatus = 'Completed';
+                    } else if (order.orderStatus === 'Cancelled') {
+                      badgeClass = 'rrm-badge';
+                      displayStatus = 'Cancelled';
+                    }
 
-                  return (
-                    <tr key={order.id}>
-                      {/* Order Column */}
-                      <td>
-                        <div style={{ fontWeight: 700, color: '#38bdf8', fontSize: '0.8125rem' }}>{order.orderNumber}</div>
-                        <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>{order.time}</div>
-                      </td>
+                    const itemsText = order.items.map(i => `${i.quantity} × ${i.name}`).join(' · ');
 
-                      {/* Customer Column with images */}
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                            {order.images.map((imgSrc, i) => (
-                              <img
-                                key={i}
-                                src={imgSrc}
-                                alt="item"
-                                style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '0px',
-                                  objectFit: 'cover',
-                                  border: '1px solid var(--border)',
-                                  backgroundColor: 'var(--muted)'
-                                }}
-                              />
-                            ))}
+                    return (
+                      <tr key={order.id}>
+                        {/* Order Column */}
+                        <td>
+                          <div style={{ fontWeight: 700, color: '#38bdf8', fontSize: '0.8125rem' }}>{order.orderNumber}</div>
+                          <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>
+                            {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
-                          <div>
-                            <div style={{ fontWeight: 600, color: 'var(--foreground)', fontSize: '0.8125rem' }}>
-                              {order.customerName}
+                        </td>
+
+                        {/* Customer Column */}
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{
+                              width: '30px',
+                              height: '30px',
+                              borderRadius: '0px',
+                              backgroundColor: 'rgba(28, 44, 96, 0.08)',
+                              color: '#1C2C60',
+                              border: '1px solid var(--border)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              fontWeight: 700,
+                              fontSize: '0.75rem'
+                            }}>
+                              <Coffee size={14} />
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: '1px' }}>
-                              {order.type} · {order.details}
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, color: 'var(--foreground)', fontSize: '0.8125rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {order.customerName}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--muted-foreground)', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {order.channel} · {itemsText}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Status Column */}
-                      <td>
-                        <span className={badgeClass} style={{ borderRadius: '0px' }}>
-                          ● {order.status}
-                        </span>
-                      </td>
+                        {/* Status Column */}
+                        <td>
+                          <span className={badgeClass} style={{ borderRadius: '0px' }}>
+                            ● {displayStatus}
+                          </span>
+                        </td>
 
-                      {/* Total Column */}
-                      <td style={{ fontWeight: 700, color: 'var(--foreground)' }}>
-                        ${order.total.toFixed(2)}
-                      </td>
+                        {/* Total Column */}
+                        <td style={{ fontWeight: 700, color: 'var(--foreground)' }}>
+                          ${order.totalAmount.toFixed(2)}
+                        </td>
 
-                      {/* Action Column */}
-                      <td style={{ textAlign: 'right' }}>
-                        {order.status === 'New' && (
-                          <button
-                            onClick={() => handleAction(order.id, 'New')}
-                            className="rrm-btn-outline"
-                            style={{ padding: '4px 12px', fontSize: '0.75rem', borderRadius: '0px' }}
-                          >
-                            Start
-                          </button>
-                        )}
-                        {order.status === 'Preparing' && (
-                          <button
-                            onClick={() => handleAction(order.id, 'Preparing')}
-                            className="rrm-btn-primary"
-                            style={{ padding: '4px 12px', fontSize: '0.75rem', borderRadius: '0px' }}
-                          >
-                            Mark ready
-                          </button>
-                        )}
-                        {order.status === 'Ready' && (
-                          <button
-                            onClick={() => handleAction(order.id, 'Ready')}
-                            className="rrm-btn-outline"
-                            style={{ padding: '4px 12px', fontSize: '0.75rem', borderRadius: '0px', color: '#10b981', borderColor: '#10b981' }}
-                          >
-                            Complete
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                        {/* Action Column */}
+                        <td style={{ textAlign: 'right' }}>
+                          {order.orderStatus !== 'Completed' && order.orderStatus !== 'Cancelled' ? (
+                            <button
+                              onClick={() => handleNextStatus(order)}
+                              className={order.orderStatus === 'Brewing / Prep' ? 'rrm-btn-primary' : 'rrm-btn-outline'}
+                              style={{ padding: '4px 12px', fontSize: '0.75rem', borderRadius: '0px' }}
+                            >
+                              {nextActionLabel}
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Done</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -616,43 +525,49 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
 
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1.25rem' }}>
-            {stockAlerts.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  backgroundColor: 'var(--muted)',
-                  borderRadius: '0px',
-                  border: '1px solid var(--border)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '26px',
-                    height: '26px',
-                    borderRadius: '0px',
-                    backgroundColor: 'rgba(198, 138, 76, 0.2)',
-                    color: '#C68A4C',
+            {lowStockAlerts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: '#10b981', fontSize: '0.8125rem', fontWeight: 600 }}>
+                ✓ All items healthy &amp; well stocked
+              </div>
+            ) : (
+              lowStockAlerts.slice(0, 4).map((item) => (
+                <div
+                  key={item.id}
+                  style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <ArrowDownLeft size={14} />
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    backgroundColor: 'var(--muted)',
+                    borderRadius: '0px',
+                    border: '1px solid var(--border)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '0px',
+                      backgroundColor: 'rgba(198, 138, 76, 0.2)',
+                      color: '#C68A4C',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <AlertTriangle size={14} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--foreground)' }}>{item.name}</div>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>{item.category}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--foreground)' }}>{item.name}</div>
-                    <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>{item.category}</div>
-                  </div>
-                </div>
 
-                <div className="rrm-badge rrm-badge-warning" style={{ borderRadius: '0px' }}>
-                  {item.quantity}
+                  <div className="rrm-badge rrm-badge-warning" style={{ borderRadius: '0px' }}>
+                    {item.stock} {item.unit}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
 
             {/* View inventory button */}
             <div style={{ marginTop: '0.75rem' }}>

@@ -3,21 +3,21 @@ import type { InventoryItem, LocationInfo, KioskOrder, StockAdjustmentLog, Loyal
 export const LOCATIONS: LocationInfo[] = [
   {
     id: 'loc-main',
-    name: "Tallio's Main Street Roastery",
+    name: "Bayview Café (Roastery HQ)",
     type: 'Roastery Cafe',
     address: '442 Market St, Central Quarter',
     activeOrders: 6,
   },
   {
     id: 'loc-truck-1',
-    name: "Mobile Food Truck #1 (Downtown)",
+    name: "Mobile Food Truck #1",
     type: 'Mobile Food Truck',
     address: 'Corner of 5th & Pine (Near Tech Hub)',
     activeOrders: 4,
   },
   {
     id: 'loc-truck-2',
-    name: "Mobile Food Truck #2 (Farmers Mkt)",
+    name: "Mobile Food Truck #2",
     type: 'Mobile Food Truck',
     address: 'Harbor Marina Square',
     activeOrders: 2,
