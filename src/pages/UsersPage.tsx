@@ -212,28 +212,28 @@ export const UsersPage: React.FC<UsersPageProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem', width: '100%' }}>
       
       {/* 1. Header & Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--foreground)', letterSpacing: '-0.025em', margin: 0, lineHeight: 1.15 }}>
+          <h1 style={{ fontSize: '1.625rem', fontWeight: 700, color: 'var(--foreground)', letterSpacing: '-0.025em', margin: 0, lineHeight: 1.15 }}>
             Users Management
           </h1>
-          <p style={{ margin: '3px 0 0', fontSize: '0.8125rem', color: 'var(--muted-foreground)', fontWeight: 500 }}>
+          <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--muted-foreground)', fontWeight: 500 }}>
             Registered café app customers, loyalty members & mobile kiosk shoppers
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {!isStaff && (
             <button
               onClick={handleExportExcel}
               className="rrm-btn-outline"
-              style={{ borderRadius: '0px', padding: '7px 14px', fontSize: '0.8125rem' }}
+              style={{ borderRadius: '0px', padding: '6px 12px', fontSize: '0.78rem', height: '34px' }}
               title="Export as Excel / CSV spreadsheet"
             >
-              <Download size={14} />
+              <Download size={13} />
               <span>Export Excel</span>
             </button>
           )}
@@ -241,9 +241,9 @@ export const UsersPage: React.FC<UsersPageProps> = ({
           <button
             onClick={() => setShowAddModal(true)}
             className="rrm-btn-primary"
-            style={{ borderRadius: '0px', padding: '7px 16px', fontSize: '0.8125rem' }}
+            style={{ borderRadius: '0px', padding: '6px 14px', fontSize: '0.78rem', height: '34px' }}
           >
-            <Plus size={15} />
+            <Plus size={14} />
             <span>Add Customer</span>
           </button>
         </div>
@@ -253,21 +253,21 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       <div className="stats-grid">
         {/* Card 1: Total Registered Customers */}
         <div className="rrm-card kpi-card-hover kpi-card-primary" style={{ borderRadius: '0px' }}>
-          <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '110px' }}>
+          <div className="rrm-card-body" style={{ padding: '0.65rem 0.85rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '74px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Total Customers
               </span>
-              <div className="kpi-icon-box" style={{ width: '32px', height: '32px', backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={16} />
+              <div className="kpi-icon-box" style={{ width: '26px', height: '26px', backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={14} />
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1 }}>
                 {totalCustomers}
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '6px', fontWeight: 600 }}>
-                ↑ 100% Mobile App users
+              <div style={{ fontSize: '0.6875rem', color: '#10b981', fontWeight: 600 }}>
+                ↑ 100% Mobile
               </div>
             </div>
           </div>
@@ -275,20 +275,20 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
         {/* Card 2: Mug Club Members */}
         <div className="rrm-card kpi-card-hover kpi-card-gold" style={{ borderRadius: '0px' }}>
-          <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '110px' }}>
+          <div className="rrm-card-body" style={{ padding: '0.65rem 0.85rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '74px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Mug Club Subscribers
               </span>
-              <div className="kpi-icon-box" style={{ width: '32px', height: '32px', backgroundColor: 'rgba(198, 138, 76, 0.15)', color: '#C68A4C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Coffee size={16} />
+              <div className="kpi-icon-box" style={{ width: '26px', height: '26px', backgroundColor: 'rgba(198, 138, 76, 0.15)', color: '#C68A4C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Coffee size={14} />
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1 }}>
                 {mugClubCount}
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginTop: '6px' }}>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>
                 Active tiered subscriptions
               </div>
             </div>
@@ -297,21 +297,21 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
         {/* Card 3: Active Shoppers */}
         <div className="rrm-card kpi-card-hover kpi-card-emerald" style={{ borderRadius: '0px' }}>
-          <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '110px' }}>
+          <div className="rrm-card-body" style={{ padding: '0.65rem 0.85rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '74px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Active Customers
               </span>
-              <div className="kpi-icon-box" style={{ width: '32px', height: '32px', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CheckCircle size={16} />
+              <div className="kpi-icon-box" style={{ width: '26px', height: '26px', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircle size={14} />
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1 }}>
                 {activeCount}
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginTop: '6px' }}>
-                Active orders in past 30 days
+              <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>
+                Past 30 days
               </div>
             </div>
           </div>
@@ -319,21 +319,21 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
         {/* Card 4: Total Customer Spend */}
         <div className="rrm-card kpi-card-hover kpi-card-purple" style={{ borderRadius: '0px' }}>
-          <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '110px' }}>
+          <div className="rrm-card-body" style={{ padding: '0.65rem 0.85rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '74px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Total Customer Spend
               </span>
-              <div className="kpi-icon-box" style={{ width: '32px', height: '32px', backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Star size={16} />
+              <div className="kpi-icon-box" style={{ width: '26px', height: '26px', backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Star size={14} />
               </div>
             </div>
-            <div>
-              <div style={{ fontSize: '1.875rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)', lineHeight: 1 }}>
                 ${totalSpend.toFixed(2)}
               </div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', marginTop: '6px' }}>
-                App & kiosk lifetime spend
+              <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>
+                Lifetime spend
               </div>
             </div>
           </div>
@@ -346,30 +346,30 @@ export const UsersPage: React.FC<UsersPageProps> = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '0.75rem',
+        gap: '0.5rem',
         width: '100%'
       }}>
         {/* Compact Search Bar */}
-        <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
-          <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
+        <div style={{ position: 'relative', width: '300px', maxWidth: '100%' }}>
+          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
           <input
             type="text"
-            placeholder="Search customer name, email or phone..."
+            placeholder="Search name, email or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="rrm-input"
             style={{
               width: '100%',
-              paddingLeft: '36px',
-              height: '38px',
-              fontSize: '0.8125rem',
+              paddingLeft: '32px',
+              height: '34px',
+              fontSize: '0.78rem',
               backgroundColor: 'var(--card)',
               border: '1px solid var(--border)'
             }}
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           {/* Bulk Delete Button when items are checked (Super Admin only) */}
           {!isStaff && selectedIds.length > 0 && (
             <button
@@ -387,10 +387,10 @@ export const UsersPage: React.FC<UsersPageProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                height: '38px',
-                padding: '0 12px',
-                fontSize: '0.8125rem',
+                gap: '5px',
+                height: '34px',
+                padding: '0 10px',
+                fontSize: '0.78rem',
                 fontWeight: 600,
                 backgroundColor: '#ef4444',
                 color: '#ffffff',
@@ -398,7 +398,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                 cursor: 'pointer'
               }}
             >
-              <X size={14} />
+              <X size={13} />
               <span>Delete Selected ({selectedIds.length})</span>
             </button>
           )}
@@ -409,11 +409,12 @@ export const UsersPage: React.FC<UsersPageProps> = ({
             onChange={(e) => setMembershipFilter(e.target.value)}
             className="rrm-input"
             style={{
-              height: '38px',
-              fontSize: '0.8125rem',
+              height: '34px',
+              fontSize: '0.78rem',
               fontWeight: 500,
               backgroundColor: 'var(--card)',
-              border: '1px solid var(--border)'
+              border: '1px solid var(--border)',
+              padding: '0 8px'
             }}
           >
             <option value="all">All Memberships</option>
@@ -428,11 +429,12 @@ export const UsersPage: React.FC<UsersPageProps> = ({
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rrm-input"
             style={{
-              height: '38px',
-              fontSize: '0.8125rem',
+              height: '34px',
+              fontSize: '0.78rem',
               fontWeight: 500,
               backgroundColor: 'var(--card)',
-              border: '1px solid var(--border)'
+              border: '1px solid var(--border)',
+              padding: '0 8px'
             }}
           >
             <option value="all">All Status</option>
@@ -441,13 +443,13 @@ export const UsersPage: React.FC<UsersPageProps> = ({
           </select>
 
           {/* Table vs Card View Toggle (Icon Only) */}
-          <div style={{ display: 'inline-flex', border: '1px solid var(--border)', backgroundColor: 'var(--card)' }}>
+          <div style={{ display: 'inline-flex', border: '1px solid var(--border)', backgroundColor: 'var(--card)', height: '34px' }}>
             <button
               type="button"
               onClick={() => setViewMode('table')}
               style={{
-                height: '36px',
-                width: '36px',
+                height: '32px',
+                width: '32px',
                 padding: 0,
                 border: 'none',
                 backgroundColor: viewMode === 'table' ? '#1C2C60' : 'transparent',
@@ -459,14 +461,14 @@ export const UsersPage: React.FC<UsersPageProps> = ({
               }}
               title="Table View"
             >
-              <List size={16} />
+              <List size={15} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('card')}
               style={{
-                height: '36px',
-                width: '36px',
+                height: '32px',
+                width: '32px',
                 padding: 0,
                 border: 'none',
                 backgroundColor: viewMode === 'card' ? '#1C2C60' : 'transparent',
@@ -478,7 +480,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
               }}
               title="Card View"
             >
-              <Grid size={15} />
+              <Grid size={14} />
             </button>
           </div>
         </div>
@@ -493,7 +495,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                 <tr>
                   {/* Select All Checkbox (Super Admin only) */}
                   {!isStaff && (
-                    <th style={{ width: '42px', textAlign: 'center' }}>
+                    <th style={{ width: '34px', textAlign: 'center', padding: '0.45rem 0.5rem' }}>
                       <input
                         type="checkbox"
                         checked={filteredCustomers.length > 0 && selectedIds.length === filteredCustomers.length}
@@ -504,21 +506,21 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                             setSelectedIds([]);
                           }
                         }}
-                        style={{ cursor: 'pointer', width: '15px', height: '15px' }}
+                        style={{ cursor: 'pointer', width: '14px', height: '14px' }}
                         title="Select All"
                       />
                     </th>
                   )}
-                  <th style={{ width: '180px' }}>Customer</th>
-                  <th style={{ width: '220px' }}>Email Address</th>
-                  <th style={{ width: '160px' }}>Contact Phone</th>
-                  <th style={{ width: '150px' }}>Membership</th>
-                  <th style={{ width: '80px', textAlign: 'center' }}>Orders</th>
-                  <th style={{ width: '110px' }}>Total Spent</th>
-                  <th style={{ width: '90px' }}>Points</th>
-                  <th style={{ width: '100px' }}>Status</th>
-                  <th style={{ width: '130px' }}>Last Order</th>
-                  <th style={{ width: '85px', textAlign: 'right' }}>Action</th>
+                  <th style={{ minWidth: '150px' }}>Customer</th>
+                  <th style={{ minWidth: '210px' }}>Email Address</th>
+                  <th style={{ width: '135px' }}>Contact Phone</th>
+                  <th style={{ width: '130px' }}>Membership</th>
+                  <th style={{ width: '65px', textAlign: 'center' }}>Orders</th>
+                  <th style={{ width: '95px', textAlign: 'right' }}>Total Spent</th>
+                  <th style={{ width: '80px', textAlign: 'right' }}>Points</th>
+                  <th style={{ width: '85px', textAlign: 'center' }}>Status</th>
+                  <th style={{ width: '100px' }}>Last Order</th>
+                  <th style={{ width: '44px', textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -535,7 +537,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                       <tr key={cust.id} style={{ backgroundColor: isChecked ? 'rgba(59, 130, 246, 0.05)' : undefined }}>
                         {/* Checkbox Column (Super Admin only) */}
                         {!isStaff && (
-                          <td style={{ textAlign: 'center', width: '42px' }}>
+                          <td style={{ textAlign: 'center', width: '34px', padding: '0.45rem 0.5rem' }}>
                             <input
                               type="checkbox"
                               checked={isChecked}
@@ -546,20 +548,20 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                                   setSelectedIds(prev => prev.filter(id => id !== cust.id));
                                 }
                               }}
-                              style={{ cursor: 'pointer', width: '15px', height: '15px' }}
+                              style={{ cursor: 'pointer', width: '14px', height: '14px' }}
                             />
                           </td>
                         )}
 
                         {/* Customer Name & Avatar */}
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <img
                               src={cust.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(cust.name)}`}
                               alt={cust.name}
                               style={{
-                                width: '34px',
-                                height: '34px',
+                                width: '28px',
+                                height: '28px',
                                 borderRadius: '4px',
                                 objectFit: 'cover',
                                 border: '1px solid var(--border)',
@@ -574,18 +576,14 @@ export const UsersPage: React.FC<UsersPageProps> = ({
 
                         {/* Dedicated Email Address Column */}
                         <td>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Mail size={13} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-                            <span style={{ wordBreak: 'break-all' }}>{cust.email}</span>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '240px' }} title={cust.email}>
+                            {cust.email}
                           </div>
                         </td>
 
                         {/* Contact Phone */}
                         <td style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <Phone size={13} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-                            <span>{cust.phone}</span>
-                          </div>
+                          {cust.phone || '—'}
                         </td>
 
                         {/* Membership Tier */}
@@ -595,7 +593,7 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px',
-                              padding: '2px 8px',
+                              padding: '2px 7px',
                               fontSize: '0.6875rem',
                               fontWeight: 700,
                               backgroundColor: cust.membership === 'VIP Gold' 
@@ -630,19 +628,19 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                         </td>
 
                         {/* Total Spend */}
-                        <td style={{ fontWeight: 700, color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
+                        <td style={{ fontWeight: 600, color: 'var(--foreground)', whiteSpace: 'nowrap', textAlign: 'right' }}>
                           ${cust.totalSpend.toFixed(2)}
                         </td>
 
                         {/* Loyalty Points */}
-                        <td style={{ whiteSpace: 'nowrap' }}>
+                        <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                           <span style={{ fontWeight: 600, color: '#C68A4C' }}>
                             {cust.loyaltyPoints} pts
                           </span>
                         </td>
 
                         {/* Status */}
-                        <td>
+                        <td style={{ textAlign: 'center' }}>
                           <span
                             style={{
                               display: 'inline-flex',
@@ -667,22 +665,25 @@ export const UsersPage: React.FC<UsersPageProps> = ({
                         </td>
 
                         {/* Action Column with Three Dots (...) Dropdown */}
-                        <td style={{ textAlign: 'right', position: 'relative' }}>
+                        <td style={{ textAlign: 'center', width: '44px', position: 'relative' }}>
                           <div style={{ display: 'inline-block', position: 'relative' }}>
                             <button
                               type="button"
                               onClick={() => setOpenDropdownId(openDropdownId === cust.id ? null : cust.id)}
                               className="rrm-btn-outline"
                               style={{
-                                padding: '5px 8px',
+                                padding: '4px 6px',
                                 border: '1px solid var(--border)',
                                 backgroundColor: openDropdownId === cust.id ? 'var(--muted)' : 'transparent',
                                 color: 'var(--foreground)',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
                               }}
                               title="Actions"
                             >
-                              <MoreVertical size={15} />
+                              <MoreVertical size={14} />
                             </button>
 
                             {/* Dropdown Menu */}

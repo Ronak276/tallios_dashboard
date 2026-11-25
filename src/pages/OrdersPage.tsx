@@ -269,7 +269,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {/* Location Selector (Super Admin: Dropdown, Staff: Locked Badge) */}
           {isAdmin ? (
             <div style={{
@@ -279,12 +279,13 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
               backgroundColor: 'var(--card)',
               border: '1px solid var(--border)',
               borderRadius: '0px',
-              padding: '6px 12px',
-              fontSize: '0.8125rem',
+              padding: '0 8px',
+              height: '34px',
+              fontSize: '0.78rem',
               fontWeight: 600,
               color: 'var(--foreground)'
             }}>
-              <MapPin size={14} style={{ color: '#2888E6' }} />
+              <MapPin size={13} style={{ color: '#2888E6' }} />
               <select
                 value={location}
                 onChange={e => setLocation(e.target.value as LocationId | 'all')}
@@ -294,7 +295,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                   background: 'transparent',
                   fontWeight: 600,
                   color: 'var(--foreground)',
-                  fontSize: '0.8125rem',
+                  fontSize: '0.78rem',
                   cursor: 'pointer'
                 }}
               >
@@ -310,12 +311,13 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
               backgroundColor: 'var(--card)',
               border: '1px solid var(--border)',
               borderRadius: '0px',
-              padding: '6px 12px',
-              fontSize: '0.8125rem',
+              padding: '0 10px',
+              height: '34px',
+              fontSize: '0.78rem',
               fontWeight: 600,
               color: 'var(--foreground)'
             }}>
-              <MapPin size={14} style={{ color: '#10B981' }} />
+              <MapPin size={13} style={{ color: '#10B981' }} />
               <span>{resolvedAssignedLocationId !== 'all' ? locationName(resolvedAssignedLocationId) : (assignedLocation || 'Bayview Café (Roastery HQ)')}</span>
             </div>
           )}
@@ -324,9 +326,9 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
             <button
               onClick={openSheet}
               className="rrm-btn-primary"
-              style={{ borderRadius: '0px', padding: '7px 16px', fontSize: '0.8125rem', cursor: 'pointer' }}
+              style={{ borderRadius: '0px', padding: '0 12px', height: '34px', fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             >
-              <Plus size={15} />
+              <Plus size={14} />
               <span>New Counter Order</span>
             </button>
           )}
@@ -341,13 +343,13 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
             <div className="orders-kpi-header">
               <span className="orders-kpi-label">Total Orders</span>
               <div className="orders-kpi-icon-box" style={{ backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60' }}>
-                <ShoppingBag size={16} />
+                <ShoppingBag size={14} />
               </div>
             </div>
-            <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
               <div className="orders-kpi-value">{totalOrdersCount}</div>
               <div className="orders-kpi-sub" style={{ color: '#10B981' }}>
-                ↑ Live Kiosk &amp; App Sales
+                Live Kiosk &amp; App
               </div>
             </div>
           </div>
@@ -359,10 +361,10 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
             <div className="orders-kpi-header">
               <span className="orders-kpi-label">In Kitchen Prep</span>
               <div className="orders-kpi-icon-box" style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#D97706' }}>
-                <Coffee size={16} />
+                <Coffee size={14} />
               </div>
             </div>
-            <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
               <div className="orders-kpi-value">{pendingOrdersCount}</div>
               <div className="orders-kpi-sub" style={{ color: '#D97706' }}>
                 Active barista queue
@@ -377,10 +379,10 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
             <div className="orders-kpi-header">
               <span className="orders-kpi-label">Ready for Pickup</span>
               <div className="orders-kpi-icon-box" style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#10B981' }}>
-                <CheckCircle size={16} />
+                <CheckCircle size={14} />
               </div>
             </div>
-            <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
               <div className="orders-kpi-value">{readyOrdersCount}</div>
               <div className="orders-kpi-sub" style={{ color: '#10B981' }}>
                 At pickup counter
@@ -395,13 +397,13 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
             <div className="orders-kpi-header">
               <span className="orders-kpi-label">Shift Revenue</span>
               <div className="orders-kpi-icon-box" style={{ backgroundColor: 'rgba(198, 138, 76, 0.15)', color: '#C68A4C' }}>
-                <DollarSign size={16} />
+                <DollarSign size={14} />
               </div>
             </div>
-            <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '2px' }}>
               <div className="orders-kpi-value">{money.format(totalSalesRevenue)}</div>
               <div className="orders-kpi-sub" style={{ color: '#64748B' }}>
-                Gross settled payments
+                Gross settled
               </div>
             </div>
           </div>
@@ -510,25 +512,22 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
             <table className="orders-table">
               <thead>
                 <tr>
-                  <th style={{ width: '110px' }}>Order #</th>
-                  <th style={{ width: '150px' }}>Customer</th>
-                  <th style={{ width: '130px' }}>Mobile / Phone</th>
-                  <th style={{ width: '95px' }}>Date</th>
-                  <th style={{ width: '95px' }}>Time</th>
-                  <th style={{ width: '120px' }}>Channel</th>
-                  <th style={{ width: '150px' }}>Location</th>
-                  <th style={{ width: '220px' }}>Items Ordered</th>
-                  <th style={{ width: '200px' }}>Special Notes &amp; Customization</th>
-                  <th style={{ width: '85px' }}>Total</th>
-                  <th style={{ width: '105px' }}>Status</th>
-                  <th style={{ width: '125px' }}>Payment</th>
-                  <th style={{ width: '55px', textAlign: 'center' }}>Action</th>
+                  <th style={{ width: '90px', whiteSpace: 'nowrap' }}>Order #</th>
+                  <th style={{ width: '105px', whiteSpace: 'nowrap' }}>Time / Date</th>
+                  <th style={{ minWidth: '140px' }}>Customer</th>
+                  <th style={{ width: '110px', whiteSpace: 'nowrap' }}>Channel</th>
+                  <th style={{ minWidth: '130px' }}>Location</th>
+                  <th style={{ minWidth: '180px' }}>Items</th>
+                  <th style={{ width: '85px', textAlign: 'right', whiteSpace: 'nowrap' }}>Total</th>
+                  <th style={{ width: '95px', textAlign: 'center', whiteSpace: 'nowrap' }}>Status</th>
+                  <th style={{ width: '105px', whiteSpace: 'nowrap' }}>Payment</th>
+                  <th style={{ width: '50px', textAlign: 'center' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {visible.length === 0 ? (
                   <tr>
-                    <td colSpan={13} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--muted-foreground)' }}>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--muted-foreground)' }}>
                       No orders found matching your filters.
                     </td>
                   </tr>
@@ -537,64 +536,72 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                     const timeInfo = formatOrderDateTime(order.createdAt);
                     const index = stages.indexOf(order.orderStatus);
                     return (
-                      <tr key={order.id}>
+                      <tr 
+                        key={order.id} 
+                        onClick={() => setSelectedOrderDetails(order)}
+                        style={{ cursor: 'pointer' }}
+                        title="Click to view order details"
+                      >
                         {/* 1. Order # */}
-                        <td>
-                          <span style={{ fontWeight: 700, color: '#1C2C60', fontSize: '0.85rem' }}>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 700, color: '#1C2C60', fontSize: '0.8125rem' }}>
                             {order.orderNumber}
                           </span>
                         </td>
 
-                        {/* 2. Customer Name */}
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <User size={13} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
-                            <span style={{ fontWeight: 600, color: 'var(--foreground)', fontSize: '0.8125rem' }}>
-                              {order.customerName}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* 2b. Customer Mobile / Phone */}
-                        <td>
-                          {order.customerPhone ? (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8125rem', color: '#1C2C60', fontWeight: 500 }}>
-                              <Phone size={12} style={{ color: '#2563EB', flexShrink: 0 }} />
-                              <span>{order.customerPhone}</span>
+                        {/* 2. Combined Time & Date */}
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                              <Clock size={11} style={{ color: '#D97706', flexShrink: 0 }} />
+                              <span>{timeInfo.time}</span>
                             </div>
-                          ) : (
-                            <span style={{ color: '#94A3B8', fontSize: '0.75rem', fontStyle: 'italic' }}>
-                              Walk-in Guest
+                            <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', paddingLeft: '15px' }}>
+                              {timeInfo.date}
                             </span>
-                          )}
-                        </td>
-
-                        {/* 3. Order Date */}
-                        <td>
-                          <span style={{ fontSize: '0.8125rem', color: 'var(--foreground)', fontWeight: 500 }}>
-                            {timeInfo.date}
-                          </span>
-                        </td>
-
-                        {/* 4. Order Time */}
-                        <td>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                            <Clock size={13} style={{ color: '#D97706' }} />
-                            <span>{timeInfo.time}</span>
                           </div>
                         </td>
 
-                        {/* 5. Channel */}
+                        {/* 3. Combined Customer Name & Mobile */}
                         <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '150px'
+                            }} title={order.customerName}>
+                              <User size={12} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+                              <span style={{ fontWeight: 600, color: 'var(--foreground)', fontSize: '0.8125rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {order.customerName}
+                              </span>
+                            </div>
+                            {order.customerPhone ? (
+                              <span style={{ fontSize: '0.72rem', color: '#2563EB', paddingLeft: '17px', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                {order.customerPhone}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', paddingLeft: '17px', fontStyle: 'italic' }}>
+                                Walk-in Guest
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 4. Channel */}
+                        <td style={{ whiteSpace: 'nowrap' }}>
                           <span style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            padding: '3px 8px',
-                            fontSize: '0.75rem',
+                            padding: '2px 7px',
+                            fontSize: '0.7rem',
                             fontWeight: 600,
-                            backgroundColor: 'rgba(28, 44, 96, 0.06)',
+                            backgroundColor: 'rgba(28, 44, 96, 0.05)',
                             color: '#1C2C60',
-                            border: '1px solid rgba(28, 44, 96, 0.15)',
+                            border: '1px solid rgba(28, 44, 96, 0.12)',
                             borderRadius: '0px',
                             whiteSpace: 'nowrap'
                           }}>
@@ -602,32 +609,44 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                           </span>
                         </td>
 
-                        {/* 6. Location */}
+                        {/* 5. Location */}
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', color: 'var(--foreground)', fontWeight: 500 }}>
-                            <MapPin size={12} style={{ color: '#2888E6', flexShrink: 0 }} />
-                            <span>{locationName(order.locationId)}</span>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            fontSize: '0.75rem',
+                            color: 'var(--foreground)',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '140px'
+                          }} title={locationName(order.locationId)}>
+                            <MapPin size={11} style={{ color: '#2888E6', flexShrink: 0 }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{locationName(order.locationId)}</span>
                           </div>
                         </td>
 
-                        {/* 7. Dedicated Column: Items Ordered (Name + Quantity) */}
+                        {/* 6. Clean Items Column (No chaotic tags outside) */}
                         <td>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                             {order.items.map((item, idx) => (
-                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem' }}>
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                                 <span style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  minWidth: '22px',
-                                  height: '19px',
-                                  padding: '0 4px',
-                                  fontSize: '0.72rem',
+                                  minWidth: '18px',
+                                  height: '17px',
+                                  padding: '0 3px',
+                                  fontSize: '0.6875rem',
                                   fontWeight: 700,
                                   backgroundColor: '#1C2C60',
                                   color: '#FFFFFF',
                                   borderRadius: '0px',
-                                  lineHeight: 1
+                                  lineHeight: 1,
+                                  flexShrink: 0
                                 }}>
                                   {item.quantity}×
                                 </span>
@@ -639,80 +658,48 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                           </div>
                         </td>
 
-                        {/* 8. Dedicated Column: Special Notes & Customization Tags */}
-                        <td>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            {order.items.map((item, idx) => (
-                              <div key={idx} style={{ minHeight: '19px', display: 'flex', alignItems: 'center' }}>
-                                {item.options ? (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                    {item.options.split(',').map((opt, optIdx) => (
-                                      <span
-                                        key={optIdx}
-                                        style={{
-                                          fontSize: '0.6875rem',
-                                          fontWeight: 600,
-                                          padding: '1px 6px',
-                                          backgroundColor: '#FEF3C7',
-                                          color: '#92400E',
-                                          border: '1px solid #FDE68A',
-                                          borderRadius: '0px',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '3px',
-                                          whiteSpace: 'nowrap'
-                                        }}
-                                      >
-                                        • {opt.trim()}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span style={{ fontSize: '0.72rem', color: '#94A3B8', fontStyle: 'italic' }}>
-                                    Standard Recipe
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-
-                        {/* 9. Total Amount */}
-                        <td>
-                          <span style={{ fontWeight: 700, color: 'var(--foreground)', fontSize: '0.875rem' }}>
+                        {/* 7. Total Amount */}
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--foreground)', fontSize: '0.8125rem' }}>
                             {money.format(order.totalAmount)}
                           </span>
                         </td>
 
-                        {/* 10. Order Fulfillment Status */}
-                        <td>
+                        {/* 8. Order Fulfillment Status */}
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           <span className={`orders-status-badge ${getStatusBadgeClass(order.orderStatus)}`}>
                             {labels[index] || order.orderStatus}
                           </span>
                         </td>
 
-                        {/* 11. Payment & Method */}
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        {/* 9. Payment & Method */}
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
                             <span className={`orders-pay-badge ${order.stripeStatus === 'Paid' ? '' : 'orders-pay-unpaid'}`}>
                               {order.stripeStatus}
                             </span>
                             <span className="orders-pay-method">
-                              <CreditCard size={11} />
+                              <CreditCard size={10} />
                               {order.paymentMethod || 'Card'}
                             </span>
                           </div>
                         </td>
 
-                        {/* Actions (3-dot Dropdown Menu matching Users Module) */}
-                        <td style={{ textAlign: 'right', position: 'relative' }}>
+                        {/* 10. Actions (3-dot Dropdown Menu) */}
+                        <td 
+                          style={{ textAlign: 'center', position: 'relative', width: '50px' }}
+                          onClick={e => e.stopPropagation()}
+                        >
                           <div style={{ display: 'inline-block', position: 'relative' }}>
                             <button
                               type="button"
-                              onClick={() => setOpenDropdownId(openDropdownId === order.id ? null : order.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenDropdownId(openDropdownId === order.id ? null : order.id);
+                              }}
                               className="rrm-btn-outline"
                               style={{
-                                padding: '5px 8px',
+                                padding: '4px 6px',
                                 border: '1px solid var(--border)',
                                 borderRadius: '0px',
                                 backgroundColor: openDropdownId === order.id ? 'var(--muted)' : 'transparent',
@@ -721,7 +708,7 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                               }}
                               title="Actions"
                             >
-                              <MoreVertical size={15} />
+                              <MoreVertical size={14} />
                             </button>
 
                             {openDropdownId === order.id && (
@@ -1582,12 +1569,21 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
             {/* Drawer Header */}
             <header className="orders-sheet-header">
               <div>
-                <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#64748B' }}>
-                  ORDER DETAILS
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#64748B' }}>
+                    ORDER DETAILS
+                  </span>
+                  <span className={`orders-status-badge ${getStatusBadgeClass(selectedOrderDetails.orderStatus)}`}>
+                    {selectedOrderDetails.orderStatus}
+                  </span>
+                </div>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1C2C60', margin: '2px 0 0 0' }}>
                   {selectedOrderDetails.orderNumber}
                 </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '3px', fontSize: '0.75rem', color: '#64748B' }}>
+                  <Clock size={12} style={{ color: '#D97706' }} />
+                  <span>Placed: {formatOrderDateTime(selectedOrderDetails.createdAt).date} at {formatOrderDateTime(selectedOrderDetails.createdAt).time}</span>
+                </div>
               </div>
               <button
                 type="button"
@@ -1613,11 +1609,15 @@ export function OrdersPage({ orders, inventory, isAdmin, assignedLocation, onUpd
                       {selectedOrderDetails.customerName}
                     </strong>
                   </div>
-                  {selectedOrderDetails.customerPhone && (
+                  {selectedOrderDetails.customerPhone ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', fontSize: '0.75rem', color: '#2563EB', fontWeight: 600 }}>
                       <Phone size={12} />
                       <span>{selectedOrderDetails.customerPhone}</span>
                     </div>
+                  ) : (
+                    <span style={{ display: 'block', marginTop: '4px', fontSize: '0.72rem', color: '#94A3B8', fontStyle: 'italic' }}>
+                      Walk-in Guest
+                    </span>
                   )}
                 </div>
 

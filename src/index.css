@@ -154,7 +154,7 @@ body {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
+  gap: 0.75rem;
   width: 100%;
 }
 
@@ -319,15 +319,14 @@ body {
 }
 
 .rrm-table th {
-  padding: 0.75rem 1rem;
-  font-size: 0.7rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: var(--muted-foreground);
   background-color: var(--muted);
   border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
   white-space: nowrap;
 }
 
@@ -336,9 +335,8 @@ body {
 }
 
 .rrm-table td {
-  padding: 0.85rem 1rem;
+  padding: 0.48rem 0.75rem;
   border-bottom: 1px solid var(--border);
-  border-right: 1px solid var(--border);
   color: var(--foreground);
   vertical-align: middle;
 }
