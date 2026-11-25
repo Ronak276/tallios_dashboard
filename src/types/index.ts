@@ -38,19 +38,22 @@ export interface InventoryItem {
 export interface KioskOrder {
   id: string;
   orderNumber: string;
-  channel: 'Self-Service Kiosk' | 'QR Code Table' | 'Mobile Food Truck Counter';
+  channel: 'Website' | 'Mobile App' | 'Self-Service Kiosk' | 'Tablet' | 'Walk-in / Counter'
+    | 'QR Code Table' | 'Mobile Food Truck Counter';
   locationId: LocationId;
   customerName: string;
   items: {
+    inventoryItemId?: string;
     name: string;
     quantity: number;
     options?: string;
     price: number;
   }[];
   totalAmount: number;
-  stripeStatus: 'Paid' | 'Processing' | 'Failed' | 'Refunded';
+  stripeStatus: 'Unpaid' | 'Paid' | 'Processing' | 'Failed' | 'Refunded';
   stripeChargeId: string;
-  orderStatus: 'Incoming' | 'Brewing / Prep' | 'Ready for Pickup' | 'Completed';
+  orderStatus: 'Incoming' | 'Brewing / Prep' | 'Ready for Pickup' | 'Completed' | 'Cancelled';
+  paymentMethod?: 'Card' | 'Apple Pay' | 'Google Pay' | 'Cash' | 'Stripe' | 'App Wallet';
   createdAt: string;
 }
 

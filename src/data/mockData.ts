@@ -230,7 +230,8 @@ export const INITIAL_ORDERS: KioskOrder[] = [
     stripeStatus: 'Paid',
     stripeChargeId: 'ch_3N8x7fLkd921M',
     orderStatus: 'Brewing / Prep',
-    createdAt: '2 mins ago',
+    paymentMethod: 'Apple Pay',
+    createdAt: '2026-11-25T11:58:00Z',
   },
   {
     id: 'ord-102',
@@ -245,7 +246,8 @@ export const INITIAL_ORDERS: KioskOrder[] = [
     stripeStatus: 'Paid',
     stripeChargeId: 'ch_3N8x8aLkd922K',
     orderStatus: 'Incoming',
-    createdAt: ' Just now',
+    paymentMethod: 'Card',
+    createdAt: '2026-11-25T12:02:00Z',
   },
   {
     id: 'ord-103',
@@ -260,7 +262,8 @@ export const INITIAL_ORDERS: KioskOrder[] = [
     stripeStatus: 'Paid',
     stripeChargeId: 'ch_3N8x91Lkd929P',
     orderStatus: 'Ready for Pickup',
-    createdAt: '6 mins ago',
+    paymentMethod: 'Google Pay',
+    createdAt: '2026-11-25T11:54:00Z',
   },
   {
     id: 'ord-104',
@@ -276,7 +279,8 @@ export const INITIAL_ORDERS: KioskOrder[] = [
     stripeStatus: 'Paid',
     stripeChargeId: 'ch_3N8y10Lkd933Z',
     orderStatus: 'Incoming',
-    createdAt: '4 mins ago',
+    paymentMethod: 'Apple Pay',
+    createdAt: '2026-11-25T11:56:00Z',
   },
 ];
 

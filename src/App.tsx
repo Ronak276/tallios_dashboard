@@ -11,7 +11,7 @@ import {
   LayoutGrid, Package, 
   Users, SidebarToggle, 
   Sun, Moon, MoreVertical, Plus, 
-  CheckCircle, DollarSign, AlertTriangle, X, List, Grid,
+  CheckCircle, DollarSign, AlertTriangle, X,
   ClipboardList, Cubes, MapPin
 } from './components/icons/Icons';
 import { GradientAreaChart } from './components/charts/GradientAreaChart';
@@ -22,9 +22,10 @@ import { EditItemModal, ViewItemModal } from './components/modals/ItemActionModa
 import { OverviewPage } from './pages/OverviewPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { PaymentsPage } from './pages/PaymentsPage';
+import { OrdersPage } from './pages/OrdersPage';
 import { UsersPage } from './pages/UsersPage';
 import { LogOut } from './components/icons/Icons';
-import { supabase, SUPER_ADMIN_CREDENTIALS, STAFF_CREDENTIALS } from './lib/supabase';
+import { supabase, SUPER_ADMIN_CREDENTIALS, STAFF_CREDENTIALS, ALL_STAFF_ACCOUNTS } from './lib/supabase';
 
 export function App() {
   const [darkMode, setDarkMode] = React.useState(false);
@@ -42,7 +43,24 @@ export function App() {
 
   const [orders, setOrders] = React.useState<KioskOrder[]>(() => {
     const saved = localStorage.getItem('tallios_orders');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    if (!saved) return INITIAL_ORDERS;
+    try {
+      const parsed: KioskOrder[] = JSON.parse(saved);
+      // Clean up any old orders that had "mins ago" or "just now" string in createdAt
+      const cleaned = parsed.map(o => {
+        if (o.createdAt && (o.createdAt.includes('ago') || o.createdAt.toLowerCase().includes('just now'))) {
+          const match = INITIAL_ORDERS.find(init => init.id === o.id);
+          return {
+            ...o,
+            createdAt: match?.createdAt || '2026-11-25T11:58:00Z',
+          };
+        }
+        return o;
+      });
+      return cleaned;
+    } catch {
+      return INITIAL_ORDERS;
+    }
   });
 
   const [logs, setLogs] = React.useState<StockAdjustmentLog[]>(() => {
@@ -139,6 +157,66 @@ export function App() {
     localStorage.setItem('tallios_customers', JSON.stringify(customers));
   }, [customers]);
   
+  // Supabase Database Real-time Sync for Orders
+  React.useEffect(() => {
+    const mapOrder = (d: any): KioskOrder => ({
+      id: d.id,
+      orderNumber: d.order_number,
+      channel: d.channel || 'Walk-in / Counter',
+      locationId: d.location_id || 'loc-main',
+      customerName: d.customer_name || 'Walk-in',
+      items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || []),
+      totalAmount: Number(d.total_amount || 0),
+      stripeStatus: d.stripe_status || 'Paid',
+      stripeChargeId: d.stripe_charge_id || '',
+      orderStatus: d.order_status || 'Incoming',
+      paymentMethod: d.payment_method || 'Card',
+      createdAt: d.created_at || new Date().toISOString(),
+    });
+
+    const fetchOrders = async () => {
+      try {
+        const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          const mapped = data.map(mapOrder);
+          setOrders(mapped);
+          localStorage.setItem('tallios_orders', JSON.stringify(mapped));
+        }
+      } catch (err) {
+        console.warn('Note on Supabase orders fetch:', err);
+      }
+    };
+
+    fetchOrders();
+
+    const channel = supabase
+      .channel('realtime_orders_sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newOrder = mapOrder(payload.new);
+            setOrders(prev => {
+              if (prev.some(o => o.id === newOrder.id || o.orderNumber === newOrder.orderNumber)) return prev;
+              return [newOrder, ...prev];
+            });
+            triggerToast(`New order received: ${newOrder.orderNumber}`);
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = mapOrder(payload.new);
+            setOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+          } else if (payload.eventType === 'DELETE') {
+            setOrders(prev => prev.filter(o => o.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Modals & Action States
   const [showAddModal, setShowAddModal] = React.useState(false);
   const [showAdjustModal, setShowAdjustModal] = React.useState(false);
@@ -162,7 +240,7 @@ export function App() {
         const fallbackCreds = isStaff ? STAFF_CREDENTIALS : SUPER_ADMIN_CREDENTIALS;
         const userObj = {
           name: metadata.name || fallbackCreds.name,
-          email: session.user.email || fallbackCreds.email,
+          email: session.user.email || '',
           role: metadata.role || fallbackCreds.role,
           assignedLocation: metadata.assignedLocation || fallbackCreds.assignedLocation,
         };
@@ -179,7 +257,7 @@ export function App() {
         const fallbackCreds = isStaff ? STAFF_CREDENTIALS : SUPER_ADMIN_CREDENTIALS;
         const userObj = {
           name: metadata.name || fallbackCreds.name,
-          email: session.user.email || fallbackCreds.email,
+          email: session.user.email || '',
           role: metadata.role || fallbackCreds.role,
           assignedLocation: metadata.assignedLocation || fallbackCreds.assignedLocation,
         };
@@ -198,9 +276,6 @@ export function App() {
   const [showEditItemModal, setShowEditItemModal] = React.useState(false);
   const [showViewItemModal, setShowViewItemModal] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
-
-  // Per-module View Mode States (Default: 'table')
-  const [ordersViewMode, setOrdersViewMode] = React.useState<'table' | 'card'>('table');
 
   const [selectedOrderForReceipt, setSelectedOrderForReceipt] = React.useState<KioskOrder | null>(null);
   const [selectedItemForAction, setSelectedItemForAction] = React.useState<InventoryItem | null>(null);
@@ -308,9 +383,12 @@ export function App() {
     ? inventory.filter(item => item.locationId === activeScopeLocationId)
     : (selectedLocation === 'all' ? inventory : inventory.filter(item => item.locationId === selectedLocation));
 
-  const scopedOrders = currentUser?.role === 'Staff'
-    ? orders.filter(order => order.locationId === activeScopeLocationId)
-    : (selectedLocation === 'all' ? orders : orders.filter(order => order.locationId === selectedLocation));
+  const orderUserEmail = currentUser?.email.toLowerCase();
+  const isOrdersAdmin = orderUserEmail === SUPER_ADMIN_CREDENTIALS.email.toLowerCase();
+  const staffAccount = ALL_STAFF_ACCOUNTS.find(account => account.email.toLowerCase() === orderUserEmail);
+  const orderLocation = LOCATIONS.find(location =>
+    staffAccount && (location.name === staffAccount.location || location.name.startsWith(staffAccount.location + ' (')),
+  )?.id ?? (staffAccount?.location === 'Bayview Café' ? 'loc-main' : undefined);
 
   // KPI Calculations (Scoped)
   const totalSKUs = scopedInventory.length;
@@ -801,7 +879,7 @@ export function App() {
               <h2 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--foreground)', textTransform: 'capitalize' }}>
                 {activeTab === 'dashboard' ? 'Overview' : 
                  activeTab === 'inventory' ? 'Raw Ingredients & Stock' : 
-                 activeTab === 'orders' ? 'Live Kiosk & QR Orders' : 
+                 activeTab === 'orders' ? 'Orders' :
                  activeTab === 'trucks' ? 'Mobile Food Trucks & Units' : 
                  activeTab === 'users' ? 'Users & Customers' :
                  activeTab === 'roasting' ? 'Roasting & Batch Logs' : 
@@ -826,7 +904,7 @@ export function App() {
         </header>
 
         {/* WORKSPACE CONTENT BODY */}
-        <main className="app-content">
+        <main className={activeTab === 'orders' ? 'app-content orders-content' : 'app-content'}>
           
           {/* TAB 0: DASHBOARD OVERVIEW (PICTURE-PERFECT TO THE DESIGN) */}
           {activeTab === 'dashboard' && (
@@ -842,7 +920,7 @@ export function App() {
           )}
 
           {/* STATS OVERVIEW CARDS (FOR OTHER TABS) */}
-          {activeTab !== 'dashboard' && activeTab !== 'users' && (
+          {activeTab !== 'dashboard' && activeTab !== 'users' && activeTab !== 'orders' && (
             <div className="stats-grid">
               <div className="rrm-card">
                 <div className="rrm-card-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -928,285 +1006,47 @@ export function App() {
             />
           )}
 
-          {/* TAB 2: LIVE KIOSK & QR ORDERS */}
           {activeTab === 'orders' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div>
-                  <h2 style={{ fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Live Kiosk & QR Order Feed</h2>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>Self-service terminal orders synced with Stripe charge authorization</p>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {/* Table vs Card Icon-only Toggle */}
-                  <div style={{ display: 'inline-flex', border: '1px solid var(--border)', backgroundColor: 'var(--card)' }}>
-                    <button
-                      onClick={() => setOrdersViewMode('table')}
-                      style={{
-                        padding: '5px 9px',
-                        border: 'none',
-                        background: ordersViewMode === 'table' ? 'var(--primary)' : 'transparent',
-                        color: ordersViewMode === 'table' ? '#ffffff' : 'var(--muted-foreground)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title="Table View (Default)"
-                    >
-                      <List size={15} />
-                    </button>
-                    <button
-                      onClick={() => setOrdersViewMode('card')}
-                      style={{
-                        padding: '5px 9px',
-                        border: 'none',
-                        borderLeft: '1px solid var(--border)',
-                        background: ordersViewMode === 'card' ? 'var(--primary)' : 'transparent',
-                        color: ordersViewMode === 'card' ? '#ffffff' : 'var(--muted-foreground)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title="Card View"
-                    >
-                      <Grid size={15} />
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      const newOrd: KioskOrder = {
-                        id: `ord-${Date.now()}`,
-                        orderNumber: `#TL-${Math.floor(4000 + Math.random() * 1000)}`,
-                        channel: 'Self-Service Kiosk',
-                        locationId: 'loc-main',
-                        customerName: 'Guest Terminal #2',
-                        items: [
-                          { name: 'Iced Vanilla Oat Latte', quantity: 1, price: 6.50 },
-                          { name: 'Fresh Croissant', quantity: 1, price: 4.50 },
-                        ],
-                        totalAmount: 11.00,
-                        stripeStatus: 'Paid',
-                        stripeChargeId: `ch_${Math.random().toString(36).substring(7)}`,
-                        orderStatus: 'Incoming',
-                        createdAt: 'Just now',
-                      };
-                      setOrders(prev => [newOrd, ...prev]);
-                      triggerToast(`Incoming order received: ${newOrd.orderNumber}!`);
-                    }}
-                    className="rrm-btn-primary"
-                  >
-                    <Plus size={14} /> + Simulate Incoming Kiosk Order
-                  </button>
-                </div>
-              </div>
-
-              {ordersViewMode === 'table' ? (
-                <div className="rrm-card">
-                  <div className="rrm-table-wrapper" style={{ border: 'none' }}>
-                    <table className="rrm-table">
-                      <thead>
-                        <tr>
-                          <th>ORDER</th>
-                          <th>CUSTOMER</th>
-                          <th>CHANNEL</th>
-                          <th>ITEMS SUMMARY</th>
-                          <th style={{ textAlign: 'right' }}>TOTAL</th>
-                          <th>PAYMENT</th>
-                          <th>STATUS</th>
-                          <th style={{ textAlign: 'right' }}>ACTIONS</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {scopedOrders.map(order => (
-                          <tr key={order.id}>
-                            <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)' }}>
-                              {order.orderNumber}
-                            </td>
-                            <td style={{ fontWeight: 600 }}>{order.customerName}</td>
-                            <td style={{ fontSize: '0.75rem' }}>{order.channel}</td>
-                            <td style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                              {order.items.map(it => `${it.quantity}x ${it.name}`).join(', ')}
-                            </td>
-                            <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary)' }}>
-                              ${order.totalAmount.toFixed(2)}
-                            </td>
-                            <td>
-                              <span className="rrm-badge rrm-badge-valid">✓ {order.stripeStatus}</span>
-                            </td>
-                            <td>
-                              <span style={{ 
-                                fontSize: '0.6875rem', 
-                                fontWeight: 700,
-                                padding: '2px 8px',
-                                backgroundColor: order.orderStatus === 'Completed' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(28, 44, 96, 0.08)',
-                                color: order.orderStatus === 'Completed' ? '#10b981' : 'var(--primary)',
-                                border: '1px solid var(--border)'
-                              }}>
-                                {order.orderStatus}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                              <div style={{ display: 'inline-flex', gap: '6px' }}>
-                                <button
-                                  onClick={() => {
-                                    setSelectedOrderForReceipt(order);
-                                    setShowReceiptModal(true);
-                                  }}
-                                  className="rrm-btn-outline"
-                                  style={{ padding: '3px 8px', fontSize: '0.6875rem' }}
-                                >
-                                  Receipt
-                                </button>
-                                {order.orderStatus === 'Incoming' && (
-                                  <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, 'Brewing / Prep')}
-                                    className="rrm-btn-primary"
-                                    style={{ padding: '3px 8px', fontSize: '0.6875rem' }}
-                                  >
-                                    Prep
-                                  </button>
-                                )}
-                                {order.orderStatus === 'Brewing / Prep' && (
-                                  <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, 'Ready for Pickup')}
-                                    className="rrm-btn-primary"
-                                    style={{ padding: '3px 8px', fontSize: '0.6875rem', backgroundColor: '#10b981', borderColor: '#10b981' }}
-                                  >
-                                    Ready
-                                  </button>
-                                )}
-                                {order.orderStatus === 'Ready for Pickup' && (
-                                  <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, 'Completed')}
-                                    className="rrm-btn-outline"
-                                    style={{ padding: '3px 8px', fontSize: '0.6875rem' }}
-                                  >
-                                    Done
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => {
-                                    if (confirm(`Remove order ${order.orderNumber}?`)) {
-                                      setOrders(prev => prev.filter(o => o.id !== order.id));
-                                      triggerToast(`Order removed`);
-                                    }
-                                  }}
-                                  className="rrm-btn-outline"
-                                  style={{ padding: '3px 6px', fontSize: '0.6875rem', borderColor: '#ef4444', color: '#ef4444' }}
-                                  title="Delete order"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div className="cards-three-grid">
-                {scopedOrders.map(order => {
-                  const loc = LOCATIONS.find(l => l.id === order.locationId);
-                  return (
-                    <div key={order.id} className="rrm-card">
-                      <div className="rrm-card-header" style={{ backgroundColor: 'var(--muted)' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1C2C60', fontFamily: 'monospace' }}>{order.orderNumber}</span>
-                            <span style={{ fontSize: '0.625rem', padding: '2px 6px', backgroundColor: 'var(--card)', border: '1px solid var(--border)', fontWeight: 600 }}>
-                              {order.channel}
-                            </span>
-                          </div>
-                          <p style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)', marginTop: '2px' }}>{order.customerName}</p>
-                        </div>
-                        <span className="rrm-badge rrm-badge-valid">
-                          ✓ {order.stripeStatus}
-                        </span>
-                      </div>
-
-                      <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        <div style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span>Location: {loc?.name.replace("Tallio's ", "")}</span>
-                          <span>{order.createdAt}</span>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '8px 0' }}>
-                          {order.items.map((it, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                              <div>
-                                <span style={{ fontWeight: 600 }}>{it.quantity}x</span> {it.name}
-                                {it.options && <div style={{ fontSize: '0.625rem', color: 'var(--muted-foreground)', paddingLeft: '12px' }}>{it.options}</div>}
-                              </div>
-                              <span style={{ fontWeight: 500 }}>${(it.price * it.quantity).toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
-                          <span style={{ fontWeight: 700 }}>Total Paid:</span>
-                          <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1C2C60' }}>${order.totalAmount.toFixed(2)}</span>
-                        </div>
-                        <div style={{ fontSize: '0.625rem', color: 'var(--muted-foreground)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          Stripe ID: {order.stripeChargeId}
-                        </div>
-                      </div>
-
-                      <div className="rrm-card-footer" style={{ backgroundColor: 'var(--card)' }}>
-                        <button
-                          onClick={() => {
-                            setSelectedOrderForReceipt(order);
-                            setShowReceiptModal(true);
-                          }}
-                          className="rrm-btn-outline"
-                          style={{ padding: '2px 6px', fontSize: '0.6875rem' }}
-                        >
-                          Receipt
-                        </button>
-
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {order.orderStatus === 'Incoming' && (
-                            <button
-                              onClick={() => handleUpdateOrderStatus(order.id, 'Brewing / Prep')}
-                              className="rrm-btn-primary"
-                              style={{ padding: '3px 8px', fontSize: '0.6875rem' }}
-                            >
-                              Start Prep
-                            </button>
-                          )}
-                          {order.orderStatus === 'Brewing / Prep' && (
-                            <button
-                              onClick={() => handleUpdateOrderStatus(order.id, 'Ready for Pickup')}
-                              className="rrm-btn-primary"
-                              style={{ padding: '3px 8px', fontSize: '0.6875rem', backgroundColor: '#10b981', borderColor: '#10b981' }}
-                            >
-                              Ready
-                            </button>
-                          )}
-                          {order.orderStatus === 'Ready for Pickup' && (
-                            <button
-                              onClick={() => handleUpdateOrderStatus(order.id, 'Completed')}
-                              className="rrm-btn-outline"
-                              style={{ padding: '3px 8px', fontSize: '0.6875rem' }}
-                            >
-                              Complete
-                            </button>
-                          )}
-                          {order.orderStatus === 'Completed' && (
-                            <span style={{ fontSize: '0.6875rem', color: '#10b981', fontWeight: 600 }}>Done ✓</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              )}
-            </div>
+            <OrdersPage
+              key={orderUserEmail}
+              orders={orders}
+              inventory={inventory}
+              isAdmin={isOrdersAdmin}
+              assignedLocation={orderLocation}
+              onDetails={order => {
+                setSelectedOrderForReceipt(order);
+                setShowReceiptModal(true);
+              }}
+              onStatus={async (order, status) => {
+                handleUpdateOrderStatus(order.id, status);
+                try {
+                  await supabase.from('orders').update({ order_status: status }).eq('id', order.id);
+                } catch (e) {
+                  console.warn('Orders status update sync error:', e);
+                }
+              }}
+              onCreate={async (order) => {
+                setOrders(previous => [order, ...previous]);
+                triggerToast(`Counter order ${order.orderNumber} saved.`);
+                try {
+                  await supabase.from('orders').insert([{
+                    id: order.id,
+                    order_number: order.orderNumber,
+                    customer_name: order.customerName,
+                    channel: order.channel,
+                    location_id: order.locationId,
+                    items: order.items,
+                    total_amount: order.totalAmount,
+                    order_status: order.orderStatus,
+                    stripe_status: order.stripeStatus,
+                    payment_method: order.paymentMethod || 'Card',
+                    stripe_charge_id: order.stripeChargeId || '',
+                  }]);
+                } catch (e) {
+                  console.warn('Orders create sync error:', e);
+                }
+              }}
+            />
           )}
 
           {/* TAB 3: FOOD TRUCKS & UNITS */}
@@ -1729,7 +1569,7 @@ export function App() {
           <div className="rrm-card" style={{ width: '100%', maxWidth: '380px', padding: '1.25rem', gap: '1rem', backgroundColor: 'var(--card)' }}>
             <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
               <h2 style={{ fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>TALLIO'S OS ROASTERY</h2>
-              <p style={{ fontSize: '0.625rem', color: 'var(--muted-foreground)' }}>Order Receipt & Stripe Proof</p>
+              <p style={{ fontSize: '0.625rem', color: 'var(--muted-foreground)' }}>Order details</p>
               <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, color: '#1C2C60', marginTop: '4px' }}>{selectedOrderForReceipt.orderNumber}</div>
             </div>
 
@@ -1743,14 +1583,14 @@ export function App() {
                 <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{selectedOrderForReceipt.channel}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>
-                <span>Stripe Charge ID:</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '0.625rem' }}>{selectedOrderForReceipt.stripeChargeId}</span>
+                <span>Payment status:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: '0.625rem' }}>{selectedOrderForReceipt.stripeStatus}</span>
               </div>
 
               <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {selectedOrderForReceipt.items.map((it, idx) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                    <span>{it.quantity}x {it.name}</span>
+                    <span>{it.quantity}× {it.name}{it.options && <><br /><small>{it.options}</small></>}</span>
                     <span style={{ fontWeight: 600 }}>${(it.price * it.quantity).toFixed(2)}</span>
                   </div>
                 ))}
@@ -1768,7 +1608,7 @@ export function App() {
                 className="rrm-btn-primary"
                 style={{ width: '100%' }}
               >
-                Close Receipt
+                Close details
               </button>
             </div>
           </div>

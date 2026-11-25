@@ -11,7 +11,10 @@ interface EditItemModalProps {
 
 export const EditItemModal: React.FC<EditItemModalProps> = ({ isOpen, onClose, item, onSave }) => {
   if (!isOpen || !item) return null;
+  return <EditItemForm key={item.id} item={item} onClose={onClose} onSave={onSave} />;
+};
 
+function EditItemForm({ item, onClose, onSave }: Pick<EditItemModalProps, 'onClose' | 'onSave'> & { item: InventoryItem }) {
   const [formData, setFormData] = useState<InventoryItem>({ ...item });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -133,6 +136,19 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ isOpen, onClose, i
             </div>
           </div>
 
+          <label style={{ display: 'grid', gap: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+            Selling price ($)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.sellingPrice ?? ''}
+              onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value === '' ? undefined : e.target.valueAsNumber })}
+              className="rrm-input"
+              placeholder="Leave blank for stock-only items"
+            />
+          </label>
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
             <button type="button" onClick={onClose} className="rrm-btn-outline">
               Cancel
@@ -145,7 +161,7 @@ export const EditItemModal: React.FC<EditItemModalProps> = ({ isOpen, onClose, i
       </div>
     </div>
   );
-};
+}
 
 interface ViewItemModalProps {
   isOpen: boolean;
