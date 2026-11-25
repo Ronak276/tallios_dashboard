@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   ClipboardList, CheckCircle, AlertTriangle, Wallet, 
-  ArrowRight, Plus, MapPin, Coffee
+  ArrowRight, MapPin, Coffee
 } from '../components/icons/Icons';
 import type { LocationId, KioskOrder, InventoryItem } from '../types';
 
@@ -33,7 +33,6 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   inventory = [],
   onNavigateToOrders,
   onNavigateToInventory,
-  onNewOrder,
   selectedLocation,
   onLocationChange,
   onStatusChange,
@@ -151,21 +150,6 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               </select>
             </div>
           )}
-
-          <button
-            onClick={onNewOrder}
-            className="rrm-btn-primary"
-            style={{
-              padding: '6px 12px',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              borderRadius: '0px',
-              cursor: 'pointer'
-            }}
-          >
-            <Plus size={13} />
-            <span>New order</span>
-          </button>
         </div>
       </div>
 
