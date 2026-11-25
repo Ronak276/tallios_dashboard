@@ -287,7 +287,7 @@ export function App() {
   ];
 
   return (
-    <div className={`app-shell ${darkMode ? 'dark' : ''}`}>
+    <div className={`app-container ${darkMode ? 'dark' : ''}`}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="toast-notification">
