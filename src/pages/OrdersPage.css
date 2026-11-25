@@ -62,7 +62,40 @@
   background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: 0px !important;
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.orders-kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+}
+
+/* Themed Color Border on Hover */
+.orders-kpi-card.orders-kpi-primary:hover {
+  border-color: #1C2C60 !important;
+  box-shadow: 0 12px 24px -6px rgba(28, 44, 96, 0.15), 0 0 0 1px #1C2C60;
+}
+
+.orders-kpi-card.orders-kpi-amber:hover {
+  border-color: #D97706 !important;
+  box-shadow: 0 12px 24px -6px rgba(217, 119, 6, 0.15), 0 0 0 1px #D97706;
+}
+
+.orders-kpi-card.orders-kpi-emerald:hover {
+  border-color: #10B981 !important;
+  box-shadow: 0 12px 24px -6px rgba(16, 185, 129, 0.15), 0 0 0 1px #10B981;
+}
+
+.orders-kpi-card.orders-kpi-gold:hover {
+  border-color: #C68A4C !important;
+  box-shadow: 0 12px 24px -6px rgba(198, 138, 76, 0.15), 0 0 0 1px #C68A4C;
+}
+
+.orders-kpi-card:hover .orders-kpi-icon-box {
+  transform: scale(1.1);
 }
 
 .orders-kpi-body {
@@ -93,6 +126,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .orders-kpi-value {
@@ -431,3 +465,296 @@
 .orders-order-card:hover {
   border-color: #1C2C60;
 }
+
+/* ========================================================
+   RIGHT SLIDING DRAWER / SHEET FORMAT FOR NEW COUNTER ORDER
+   ======================================================== */
+.orders-sheet {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  margin: 0 !important;
+  width: min(100vw, 560px) !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  padding: 0 !important;
+  border: none !important;
+  border-left: 1px solid var(--border) !important;
+  border-radius: 0px !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.25) !important;
+  z-index: 1200 !important;
+  overflow: hidden !important;
+}
+
+.orders-sheet::backdrop {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+.orders-sheet[open] {
+  animation: orders-drawer-slide-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes orders-drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.orders-drawer-form {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  background: var(--card) !important;
+}
+
+.orders-sheet-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 1.25rem 1.5rem !important;
+  border-bottom: 1px solid var(--border) !important;
+  background-color: #F8FAFC !important;
+}
+
+.orders-sheet-header h2 {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: #1C2C60 !important;
+  margin: 0 !important;
+}
+
+.orders-drawer-close-btn {
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0px !important;
+  color: var(--foreground) !important;
+  cursor: pointer !important;
+  transition: all 0.12s ease !important;
+}
+
+.orders-drawer-close-btn:hover {
+  background-color: #F1F5F9 !important;
+  border-color: #CBD5E1 !important;
+}
+
+.orders-sheet-body {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 1.5rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+}
+
+.orders-sheet-fields {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}
+
+.orders-sheet-field-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.orders-sheet-field-group label {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #64748B !important;
+}
+
+.orders-sheet-field-group input,
+.orders-sheet-field-group select {
+  width: 100% !important;
+  height: 40px !important;
+  padding: 0 12px !important;
+  font-size: 0.8125rem !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0px !important;
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  outline: none !important;
+}
+
+.orders-sheet-field-group input:focus,
+.orders-sheet-field-group select:focus {
+  border-color: #1C2C60 !important;
+}
+
+.orders-sheet-items {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.875rem !important;
+}
+
+.orders-sheet-items h3 {
+  font-size: 0.8125rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #1C2C60 !important;
+  margin: 0 !important;
+}
+
+.orders-sheet-item {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  padding: 12px 14px !important;
+  background-color: #F8FAFC !important;
+  border: 1px solid var(--border) !important;
+}
+
+.orders-sheet-item-row {
+  display: grid !important;
+  grid-template-columns: 1fr 70px 85px 32px !important;
+  gap: 10px !important;
+  align-items: center !important;
+}
+
+.orders-sheet-item select,
+.orders-sheet-item input {
+  height: 38px !important;
+  font-size: 0.8125rem !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0px !important;
+  padding: 0 10px !important;
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
+.orders-item-price {
+  height: 38px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: flex-end !important;
+  text-align: right !important;
+}
+
+.orders-item-price span {
+  font-size: 0.65rem !important;
+  color: #64748B !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em !important;
+}
+
+.orders-item-price strong {
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  color: #1C2C60 !important;
+  line-height: 1.1 !important;
+}
+
+.orders-sheet-payment-box {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.25rem !important;
+  border-top: 1px solid var(--border) !important;
+  padding-top: 1.5rem !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.orders-sheet-payment-box h3 {
+  font-size: 0.8125rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #1C2C60 !important;
+  margin: 0 0 0.25rem 0 !important;
+}
+
+.orders-payment-methods-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 10px !important;
+}
+
+.orders-payment-btn {
+  height: 44px !important;
+  padding: 0 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  border-radius: 0px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.orders-payment-status-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+}
+
+.orders-status-btn {
+  height: 44px !important;
+  padding: 0 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  border-radius: 0px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.orders-sheet-footer {
+  padding: 1.25rem 1.5rem !important;
+  border-top: 1px solid var(--border) !important;
+  background-color: #F8FAFC !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+}
+
+.orders-sheet-total {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.orders-sheet-total span {
+  font-size: 0.72rem !important;
+  color: #64748B !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+}
+
+.orders-sheet-total strong {
+  font-size: 1.4rem !important;
+  font-weight: 800 !important;
+  color: #1C2C60 !important;
+}
+
+.orders-drawer-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+

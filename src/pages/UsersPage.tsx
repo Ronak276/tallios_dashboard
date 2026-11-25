@@ -252,13 +252,13 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       {/* 2. KPI Metric Cards */}
       <div className="stats-grid">
         {/* Card 1: Total Registered Customers */}
-        <div className="rrm-card" style={{ borderRadius: '0px' }}>
+        <div className="rrm-card kpi-card-hover kpi-card-primary" style={{ borderRadius: '0px' }}>
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '110px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Total Customers
               </span>
-              <div style={{ width: '32px', height: '32px', backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="kpi-icon-box" style={{ width: '32px', height: '32px', backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Users size={16} />
               </div>
             </div>
@@ -274,13 +274,13 @@ export const UsersPage: React.FC<UsersPageProps> = ({
         </div>
 
         {/* Card 2: Mug Club Members */}
-        <div className="rrm-card" style={{ borderRadius: '0px' }}>
+        <div className="rrm-card kpi-card-hover kpi-card-gold" style={{ borderRadius: '0px' }}>
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '110px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Mug Club Subscribers
               </span>
-              <div style={{ width: '32px', height: '32px', backgroundColor: 'rgba(198, 138, 76, 0.15)', color: '#C68A4C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="kpi-icon-box" style={{ width: '32px', height: '32px', backgroundColor: 'rgba(198, 138, 76, 0.15)', color: '#C68A4C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Coffee size={16} />
               </div>
             </div>
@@ -296,13 +296,13 @@ export const UsersPage: React.FC<UsersPageProps> = ({
         </div>
 
         {/* Card 3: Active Shoppers */}
-        <div className="rrm-card" style={{ borderRadius: '0px' }}>
+        <div className="rrm-card kpi-card-hover kpi-card-emerald" style={{ borderRadius: '0px' }}>
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '110px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Active Customers
               </span>
-              <div style={{ width: '32px', height: '32px', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="kpi-icon-box" style={{ width: '32px', height: '32px', backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <CheckCircle size={16} />
               </div>
             </div>
@@ -318,13 +318,13 @@ export const UsersPage: React.FC<UsersPageProps> = ({
         </div>
 
         {/* Card 4: Total Customer Spend */}
-        <div className="rrm-card" style={{ borderRadius: '0px' }}>
+        <div className="rrm-card kpi-card-hover kpi-card-purple" style={{ borderRadius: '0px' }}>
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '110px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Total Customer Spend
               </span>
-              <div style={{ width: '32px', height: '32px', backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="kpi-icon-box" style={{ width: '32px', height: '32px', backgroundColor: 'rgba(28, 44, 96, 0.08)', color: '#1C2C60', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Star size={16} />
               </div>
             </div>

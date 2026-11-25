@@ -42,6 +42,7 @@ export interface KioskOrder {
     | 'QR Code Table' | 'Mobile Food Truck Counter';
   locationId: LocationId;
   customerName: string;
+  customerPhone?: string;
   items: {
     inventoryItemId?: string;
     name: string;

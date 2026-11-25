@@ -330,11 +330,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       {/* 4 Metric Cards (Theme rrm-card style: 0px border-radius, crisp borders) */}
       <div className="stats-grid">
         {/* Metric 1: Open orders */}
-        <div className="rrm-card" style={{ borderRadius: '0px', minHeight: '120px' }}>
+        <div className="rrm-card kpi-card-hover kpi-card-primary" style={{ borderRadius: '0px', minHeight: '120px' }}>
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '1.15rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Open orders</span>
-              <div style={{
+              <div className="kpi-icon-box" style={{
                 width: '32px',
                 height: '32px',
                 borderRadius: '0px',
@@ -360,11 +360,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
 
         {/* Metric 2: Ready for pickup */}
-        <div className="rrm-card" style={{ borderRadius: '0px', minHeight: '120px' }}>
+        <div className="rrm-card kpi-card-hover kpi-card-emerald" style={{ borderRadius: '0px', minHeight: '120px' }}>
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '1.15rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ready for pickup</span>
-              <div style={{
+              <div className="kpi-icon-box" style={{
                 width: '32px',
                 height: '32px',
                 borderRadius: '0px',
@@ -390,11 +390,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
 
         {/* Metric 3: Low stock */}
-        <div className="rrm-card" style={{ borderRadius: '0px', minHeight: '120px' }}>
+        <div className="rrm-card kpi-card-hover kpi-card-gold" style={{ borderRadius: '0px', minHeight: '120px' }}>
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '1.15rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Low stock</span>
-              <div style={{
+              <div className="kpi-icon-box" style={{
                 width: '32px',
                 height: '32px',
                 borderRadius: '0px',
@@ -420,11 +420,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
 
         {/* Metric 4: Completed sales */}
-        <div className="rrm-card" style={{ borderRadius: '0px', minHeight: '120px' }}>
+        <div className="rrm-card kpi-card-hover kpi-card-purple" style={{ borderRadius: '0px', minHeight: '120px' }}>
           <div className="rrm-card-body" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '1.15rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Completed sales</span>
-              <div style={{
+              <div className="kpi-icon-box" style={{
                 width: '32px',
                 height: '32px',
                 borderRadius: '0px',

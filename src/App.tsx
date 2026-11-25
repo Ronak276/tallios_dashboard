@@ -41,27 +41,8 @@ export function App() {
     return saved ? JSON.parse(saved) : INITIAL_INVENTORY;
   });
 
-  const [orders, setOrders] = React.useState<KioskOrder[]>(() => {
-    const saved = localStorage.getItem('tallios_orders');
-    if (!saved) return INITIAL_ORDERS;
-    try {
-      const parsed: KioskOrder[] = JSON.parse(saved);
-      // Clean up any old orders that had "mins ago" or "just now" string in createdAt
-      const cleaned = parsed.map(o => {
-        if (o.createdAt && (o.createdAt.includes('ago') || o.createdAt.toLowerCase().includes('just now'))) {
-          const match = INITIAL_ORDERS.find(init => init.id === o.id);
-          return {
-            ...o,
-            createdAt: match?.createdAt || '2026-11-25T11:58:00Z',
-          };
-        }
-        return o;
-      });
-      return cleaned;
-    } catch {
-      return INITIAL_ORDERS;
-    }
-  });
+  // Orders state directly loaded and managed via Supabase Database
+  const [orders, setOrders] = React.useState<KioskOrder[]>(INITIAL_ORDERS);
 
   const [logs, setLogs] = React.useState<StockAdjustmentLog[]>(() => {
     const saved = localStorage.getItem('tallios_logs');
@@ -83,10 +64,8 @@ export function App() {
     return saved ? JSON.parse(saved) : INITIAL_PAYMENTS;
   });
 
-  const [customers, setCustomers] = React.useState<CustomerUser[]>(() => {
-    const saved = localStorage.getItem('tallios_customers');
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
-  });
+  // Customers state directly loaded and managed via Supabase Database
+  const [customers, setCustomers] = React.useState<CustomerUser[]>(INITIAL_CUSTOMERS);
 
   // Supabase Database Real-time Sync for Customers
   React.useEffect(() => {
@@ -115,7 +94,6 @@ export function App() {
         if (!error && data && data.length > 0) {
           const mapped: CustomerUser[] = data.map(mapCustomer);
           setCustomers(mapped);
-          localStorage.setItem('tallios_customers', JSON.stringify(mapped));
         }
       } catch (err) {
         console.warn('Note on Supabase table fetch:', err);
@@ -152,10 +130,6 @@ export function App() {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  React.useEffect(() => {
-    localStorage.setItem('tallios_customers', JSON.stringify(customers));
-  }, [customers]);
   
   // Supabase Database Real-time Sync for Orders
   React.useEffect(() => {
@@ -165,6 +139,7 @@ export function App() {
       channel: d.channel || 'Walk-in / Counter',
       locationId: d.location_id || 'loc-main',
       customerName: d.customer_name || 'Walk-in',
+      customerPhone: d.customer_phone || undefined,
       items: typeof d.items === 'string' ? JSON.parse(d.items) : (d.items || []),
       totalAmount: Number(d.total_amount || 0),
       stripeStatus: d.stripe_status || 'Paid',
@@ -180,7 +155,6 @@ export function App() {
         if (!error && data && data.length > 0) {
           const mapped = data.map(mapOrder);
           setOrders(mapped);
-          localStorage.setItem('tallios_orders', JSON.stringify(mapped));
         }
       } catch (err) {
         console.warn('Note on Supabase orders fetch:', err);
@@ -222,7 +196,6 @@ export function App() {
   const [showAdjustModal, setShowAdjustModal] = React.useState(false);
   const [showTransferModal, setShowTransferModal] = React.useState(false);
   const [showPOModal, setShowPOModal] = React.useState(false);
-  const [showReceiptModal, setShowReceiptModal] = React.useState(false);
   const [showAuthModal, setShowAuthModal] = React.useState(false);
   const [authMode] = React.useState<'login' | 'signup'>('login');
   const [currentUser, setCurrentUser] = React.useState<{ name: string; email: string; role: string; assignedLocation?: string } | null>(() => {
@@ -277,7 +250,6 @@ export function App() {
   const [showViewItemModal, setShowViewItemModal] = React.useState(false);
   const [showUserMenu, setShowUserMenu] = React.useState(false);
 
-  const [selectedOrderForReceipt, setSelectedOrderForReceipt] = React.useState<KioskOrder | null>(null);
   const [selectedItemForAction, setSelectedItemForAction] = React.useState<InventoryItem | null>(null);
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
@@ -285,10 +257,6 @@ export function App() {
   React.useEffect(() => {
     localStorage.setItem('tallios_inventory', JSON.stringify(inventory));
   }, [inventory]);
-
-  React.useEffect(() => {
-    localStorage.setItem('tallios_orders', JSON.stringify(orders));
-  }, [orders]);
 
   React.useEffect(() => {
     localStorage.setItem('tallios_logs', JSON.stringify(logs));
@@ -1013,9 +981,31 @@ export function App() {
               inventory={inventory}
               isAdmin={isOrdersAdmin}
               assignedLocation={orderLocation}
-              onDetails={order => {
-                setSelectedOrderForReceipt(order);
-                setShowReceiptModal(true);
+              onUpdateOrder={async (updatedOrder) => {
+                setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+                try {
+                  await supabase.from('orders').update({
+                    customer_name: updatedOrder.customerName,
+                    customer_phone: updatedOrder.customerPhone,
+                    order_status: updatedOrder.orderStatus,
+                    stripe_status: updatedOrder.stripeStatus,
+                    payment_method: updatedOrder.paymentMethod,
+                    items: updatedOrder.items,
+                    total_amount: updatedOrder.totalAmount,
+                  }).eq('id', updatedOrder.id);
+                } catch (e) {
+                  console.warn('Orders update sync error:', e);
+                }
+                triggerToast(`Order ${updatedOrder.orderNumber} updated.`);
+              }}
+              onDeleteOrder={async (orderId) => {
+                setOrders(prev => prev.filter(o => o.id !== orderId));
+                try {
+                  await supabase.from('orders').delete().eq('id', orderId);
+                } catch (e) {
+                  console.warn('Orders delete sync error:', e);
+                }
+                triggerToast('Order permanently deleted.');
               }}
               onStatus={async (order, status) => {
                 handleUpdateOrderStatus(order.id, status);
@@ -1033,6 +1023,7 @@ export function App() {
                     id: order.id,
                     order_number: order.orderNumber,
                     customer_name: order.customerName,
+                    customer_phone: order.customerPhone || null,
                     channel: order.channel,
                     location_id: order.locationId,
                     items: order.items,
@@ -1562,58 +1553,6 @@ export function App() {
 
         </main>
       </div>
-
-      {/* MODAL: RECEIPT VIEW */}
-      {showReceiptModal && selectedOrderForReceipt && (
-        <div className="modal-backdrop">
-          <div className="rrm-card" style={{ width: '100%', maxWidth: '380px', padding: '1.25rem', gap: '1rem', backgroundColor: 'var(--card)' }}>
-            <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-              <h2 style={{ fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>TALLIO'S OS ROASTERY</h2>
-              <p style={{ fontSize: '0.625rem', color: 'var(--muted-foreground)' }}>Order details</p>
-              <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, color: '#1C2C60', marginTop: '4px' }}>{selectedOrderForReceipt.orderNumber}</div>
-            </div>
-
-            <div style={{ fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>
-                <span>Customer:</span>
-                <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{selectedOrderForReceipt.customerName}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>
-                <span>Channel:</span>
-                <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{selectedOrderForReceipt.channel}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>
-                <span>Payment status:</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '0.625rem' }}>{selectedOrderForReceipt.stripeStatus}</span>
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {selectedOrderForReceipt.items.map((it, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                    <span>{it.quantity}× {it.name}{it.options && <><br /><small>{it.options}</small></>}</span>
-                    <span style={{ fontWeight: 600 }}>${(it.price * it.quantity).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', fontWeight: 700, paddingTop: '4px' }}>
-                <span>Total Amount:</span>
-                <span style={{ color: '#1C2C60' }}>${selectedOrderForReceipt.totalAmount.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div style={{ paddingTop: '0.5rem' }}>
-              <button 
-                onClick={() => setShowReceiptModal(false)}
-                className="rrm-btn-primary"
-                style={{ width: '100%' }}
-              >
-                Close details
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MODAL 1: ADD NEW INGREDIENT / SKU */}
       {showAddModal && (

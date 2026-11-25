@@ -213,6 +213,57 @@ body {
   flex-direction: column;
 }
 
+/* Global KPI Card Interactive Hover & Colored Borders */
+.kpi-card-hover {
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.kpi-card-hover:hover {
+  transform: translateY(-4px);
+}
+
+.kpi-card-hover:hover .kpi-icon-box {
+  transform: scale(1.1);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kpi-icon-box {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Color Border Variants on Hover */
+.kpi-card-primary:hover {
+  border-color: #1C2C60 !important;
+  box-shadow: 0 12px 24px -6px rgba(28, 44, 96, 0.15), 0 0 0 1px #1C2C60 !important;
+}
+
+.kpi-card-emerald:hover {
+  border-color: #10B981 !important;
+  box-shadow: 0 12px 24px -6px rgba(16, 185, 129, 0.15), 0 0 0 1px #10B981 !important;
+}
+
+.kpi-card-amber:hover {
+  border-color: #D97706 !important;
+  box-shadow: 0 12px 24px -6px rgba(217, 119, 6, 0.15), 0 0 0 1px #D97706 !important;
+}
+
+.kpi-card-gold:hover {
+  border-color: #C68A4C !important;
+  box-shadow: 0 12px 24px -6px rgba(198, 138, 76, 0.15), 0 0 0 1px #C68A4C !important;
+}
+
+.kpi-card-purple:hover {
+  border-color: #6366F1 !important;
+  box-shadow: 0 12px 24px -6px rgba(99, 102, 241, 0.15), 0 0 0 1px #6366F1 !important;
+}
+
+.kpi-card-blue:hover {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 12px 24px -6px rgba(59, 130, 246, 0.15), 0 0 0 1px #3B82F6 !important;
+}
+
 .rrm-card-header {
   padding: 0.85rem 1.25rem;
   border-bottom: 1px solid var(--border);
